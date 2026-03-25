@@ -1,6 +1,6 @@
 # Proiect PIP
 
-## High Dimensionality robotic sensor data streaming for automatic control
+## High-Dimensional Robotic Sensor Data Streaming for Automatic Control 
 
 - Crihan Paula Giorgiana
 - Corniciuc Irina Geanina
