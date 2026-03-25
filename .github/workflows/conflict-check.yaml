@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   check-conflicts:
@@ -22,11 +22,11 @@ jobs:
       - name: Check for merge conflicts
         id: conflict-check
         run: |
-          # Fetch the target branch (main)
-          git fetch origin main
+          # Fetch the target branch (master)
+          git fetch origin master
           
           # Check if merge would have conflicts
-          if git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main | grep -q "changed in both"; then
+          if git merge-tree $(git merge-base HEAD origin/master) HEAD origin/master | grep -q "changed in both"; then
             echo "conflicts=true" >> $GITHUB_OUTPUT
             echo "❌ Merge conflicts detected!"
           else
