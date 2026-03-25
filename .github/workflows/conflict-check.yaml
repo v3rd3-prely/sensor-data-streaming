@@ -1,0 +1,53 @@
+name: Check Merge Conflicts
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  check-conflicts:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Check for merge conflicts
+        id: conflict-check
+        run: |
+          # Fetch the target branch (main)
+          git fetch origin main
+          
+          # Check if merge would have conflicts
+          if git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main | grep -q "changed in both"; then
+            echo "conflicts=true" >> $GITHUB_OUTPUT
+            echo "❌ Merge conflicts detected!"
+          else
+            echo "conflicts=false" >> $GITHUB_OUTPUT
+            echo "✅ No merge conflicts"
+          fi
+      
+      - name: Add comment if conflicts exist
+        if: steps.conflict-check.outputs.conflicts == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Merge conflicts detected!**\n\nThis PR has conflicts with the base branch. Please resolve them before merging.\n\n```bash\ngit checkout main\ngit pull origin main\ngit checkout ${{ github.head_ref }}\ngit merge main\n# Resolve conflicts, then push\n```'
+            })
+      
+      - name: Fail if conflicts exist
+        if: steps.conflict-check.outputs.conflicts == 'true'
+        run: |
+          echo "❌ Pull request has merge conflicts"
+          exit 1
