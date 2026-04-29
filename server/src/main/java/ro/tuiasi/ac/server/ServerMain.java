@@ -1,64 +1,97 @@
-// server/src/main/java/ro/tuiasi/ac/server/ServerMain.java
 package ro.tuiasi.ac.server;
 
-import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import ro.tuiasi.ac.common.*;
+import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServerMain {
     private static KafkaProducerUtil producer;
     private static KafkaConsumerUtil consumer;
-    private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    
+    // Track server-side metrics
+    private static final AtomicInteger messagesProcessed = new AtomicInteger(0);
+    private static long totalProcessingTime = 0;
     
     public static void main(String[] args) {
-        System.out.println("Starting server...");
+        System.out.println("🚀 Starting Server...");
         String bootstrapServers = Config.getKafkaBootstrapServers();
         
-        // Producer for sending commands to clients
+        // Create topics if they don't exist
+        KafkaTopicUtil.createTopicsIfNotExist(bootstrapServers, 
+            Config.CLIENT_TO_SERVER_TOPIC, 
+            Config.SERVER_TO_CLIENT_TOPIC);
+        
+        // Initialize producer and consumer
         producer = new KafkaProducerUtil(bootstrapServers);
+        consumer = new KafkaConsumerUtil(bootstrapServers, "server-group", Config.CLIENT_TO_SERVER_TOPIC);
         
-        // Consumer for receiving sensor data
-        consumer = new KafkaConsumerUtil(bootstrapServers, "server-group", Config.SENSOR_DATA_TOPIC);
-        System.out.println("Server started.");
-        
-        // Give consumer time to subscribe
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        
-        // Start listening for messages
-        executorService.submit(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                Message data = consumer.pollData(Message.class, Duration.ofMillis(1000));
-                if (data != null) {
-                    System.out.println("[SERVER RECEIVED] " + data.getVal());
-                    processSensorData(data);
-                }
-            }
+        // Listen for messages from clients
+        consumer.listen(ClientMessage.class, message -> {
+            ClientMessage clientMsg = (ClientMessage) message;
+            long receiveTime = Instant.now().toEpochMilli();
+            System.out.println("📥 Server received: " + clientMsg);
+            System.out.println("   ⏱️  Received at: " + receiveTime);
+            processClientMessage(clientMsg, receiveTime);
         });
         
-        // Wait a bit before sending command
+        System.out.println("✅ Server ready and listening");
+        
+        // Send a test message to client after 5 seconds
         try {
-            Thread.sleep(3000);
+            Thread.sleep(5000);
+            sendMessageToClient("Hello from Server!");
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
         }
         
-        sendCommandToClient("Hello there, my client!");
+        // Keep server running
+        keepAlive();
     }
     
-    private static void sendCommandToClient(String commandType) {
-        Message response = new Message();
-        response.setVal(commandType);
-        producer.sendData(Config.COMMAND_TOPIC, response);
-        System.out.println("Sent command: " + commandType);
+    private static void sendMessageToClient(String content) {
+        ServerMessage message = new ServerMessage(content);
+        message.setServerSentTimestamp(Instant.now().toEpochMilli());
+        producer.sendMessage(Config.SERVER_TO_CLIENT_TOPIC, message);
+        System.out.println("📤 Server sent: " + message);
     }
     
-    private static void processSensorData(Message data) {
-        System.out.println("[SERVER PROCESSING] " + data.getVal());
+    private static void processClientMessage(ClientMessage message, long receiveTime) {
+        long startProcessing = System.currentTimeMillis();
+        System.out.println("⚙️ Processing: " + message.getContent());
+        
+        // Simulate some processing work (you can adjust or remove this)
+        try {
+            Thread.sleep(10); // Simulate 10ms of processing
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        long processingTime = System.currentTimeMillis() - startProcessing;
+        
+        // Create response message with timing information
+        ServerMessage response = new ServerMessage("Server received: " + message.getContent(), message);
+        response.setServerReceivedTimestamp(receiveTime);
+        response.setServerSentTimestamp(Instant.now().toEpochMilli());
+        
+        // Update server metrics
+        int processed = messagesProcessed.incrementAndGet();
+        totalProcessingTime += processingTime;
+        double avgProcessingTime = totalProcessingTime / (double) processed;
+        
+        System.out.printf("   ⚙️  Processing took: %d ms (avg: %.2f ms)%n", processingTime, avgProcessingTime);
+        
+        // Send response back to client
+        producer.sendMessage(Config.SERVER_TO_CLIENT_TOPIC, response);
+        System.out.println("📤 Server sent response: " + response);
+        System.out.println("   ⏱️  Sent at: " + response.getServerSentTimestamp());
+    }
+    
+    private static void keepAlive() {
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
