@@ -1,6 +1,7 @@
 package ro.tuiasi.ac.client;
 
 import ro.tuiasi.ac.common.*;
+import ro.tuiasi.ac.common.KafkaProducerUtil;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 

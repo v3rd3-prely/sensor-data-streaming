@@ -5,8 +5,9 @@ public class CameraSensor implements Sensor<CameraFrame> {
     private final String id;
     private static final int WIDTH = 400;
     private static final int HEIGHT = 400;
-    private static final int TARGET_SIZE = 20;
+    private static final int TARGET_SIZE = 20;  //dim patrat
 
+    //coordonate patrat
     private int targetX;
     private int targetY;
 
