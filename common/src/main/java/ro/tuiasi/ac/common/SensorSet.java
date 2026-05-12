@@ -2,10 +2,10 @@ package ro.tuiasi.ac.common;
 
 public class SensorSet {
 
-	private final CameraSensor cameraSensor;
-	private final LidarSensor leftLidarSensor;
-	private final LidarSensor rightLidarSensor;
-	private final GyroscopeSensor gyroscopeSensor;
+	public final CameraSensor cameraSensor;
+	public final LidarSensor leftLidarSensor;
+	public final LidarSensor rightLidarSensor;
+	public final GyroscopeSensor gyroscopeSensor;
 
 	public SensorSet(CameraSensor cameraSensor, LidarSensor leftLidarSensor, LidarSensor rightLidarSensor,
 			GyroscopeSensor gyroscopeSensor) {
