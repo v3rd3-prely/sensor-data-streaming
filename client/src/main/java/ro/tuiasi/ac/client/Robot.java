@@ -45,10 +45,51 @@ public class Robot {
 			case BACK:
 				offsetY -= dist;
 				break;
-			default: System.out.println("Direction unknown.");
+			default: System.out.println("Move direction unknown.");
 			}
-		}else if(cmd instanceof RotateCommand) {
+			int newTargetX = sensorSet.cameraSensor.getTargetX()+ offsetX;
+			int newTargetY = sensorSet.cameraSensor.getTargetY()+ offsetY;
 			
+			if(newTargetX < 0) {
+				newTargetX = 0;
+			}
+			if(newTargetY < 0) {
+				newTargetY = 0;
+			}
+			if(newTargetX > 400) {
+				newTargetX = 400;
+			}
+			if(newTargetY < 400) {
+				newTargetY = 400;
+			}
+			
+			sensorSet.cameraSensor.setTargetPosition(newTargetX, newTargetY);
+			System.out.println("Move command executed.");
+		}else if(cmd instanceof RotateCommand rot) {
+			RotateDirection dir = rot.getOrientation();
+			float degrees = rot.getGrade();
+			switch(dir) {
+			case LEFT:
+				break;
+			case RIGHT:
+				degrees = -degrees;
+				break;
+			default:
+				System.out.println("Rotation direction unknown.");
+			}
+			int newTargetX = (int) (sensorSet.cameraSensor.getTargetX()+degrees);
+			int newTargetY = sensorSet.cameraSensor.getTargetY();
+			
+			if(newTargetX < 0) {
+				newTargetX = 0;
+			}
+			
+			if(newTargetX > 400) {
+				newTargetX = 400;
+			}
+			sensorSet.cameraSensor.setTargetPosition(newTargetX, newTargetY);
+			sensorSet.gyroscopeSensor.update(degrees, degrees);
+			System.out.println("Rotate command executed.");
 		}else {
 			System.out.println("Command unknown");
 		}
