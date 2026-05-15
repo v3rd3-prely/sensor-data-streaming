@@ -11,11 +11,38 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 
+/**
+ * Utility class for consuming Kafka messages.
+ * Subscribes to a Kafka topic, listens for incoming JSON messages,
+ * deserializes them into Java objects, and passes them to a handler.
+ */
 public class KafkaConsumerUtil {
+	/**
+	 * Kafka consumer used for reading messages from topics.
+	 */
     private final KafkaConsumer<String, String> consumer;
+    /**
+     * JSON object mapper used for message deserialization.
+     */
     private final ObjectMapper objectMapper = new ObjectMapper();
+    /**
+     * Controls the polling loop execution.
+     */
     private volatile boolean running = true;
     
+    /**
+     * Default constructor.
+     */
+    public KafkaConsumerUtil() {
+		this.consumer = null;}
+    
+    /**
+     * Creates a Kafka consumer utility and subscribes it to a topic.
+     *
+     * @param bootstrapServers Kafka bootstrap servers address
+     * @param groupId Kafka consumer group identifier
+     * @param topic Kafka topic to subscribe to
+     */
     public KafkaConsumerUtil(String bootstrapServers, String groupId, String topic) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -30,6 +57,14 @@ public class KafkaConsumerUtil {
         System.out.printf("✅ Subscribed to topic: %s (group: %s)%n", topic, groupId);
     }
     
+    /**
+     * Starts listening for Kafka messages in a background thread.
+     * Each received message is deserialized into the specified class
+     * and passed to the provided handler.
+     *
+     * @param messageClass class used for JSON deserialization
+     * @param handler function that processes the deserialized message
+     */
     public void listen(Class<?> messageClass, Consumer<Object> handler) {
         Thread pollingThread = new Thread(() -> {
             while (running) {
@@ -56,11 +91,18 @@ public class KafkaConsumerUtil {
         pollingThread.start();
     }
     
+    /**
+     * Stops the Kafka polling loop.
+     */
+    
     public void stop() {
         running = false;
         consumer.wakeup();
     }
     
+    /**
+     * Stops the consumer and closes the Kafka connection.
+     */
     public void close() {
         stop();
         consumer.close();
