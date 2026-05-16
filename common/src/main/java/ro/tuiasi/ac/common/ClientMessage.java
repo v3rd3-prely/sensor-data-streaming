@@ -6,12 +6,12 @@ import java.util.UUID;
 
 public class ClientMessage implements Serializable {
     private String id;
-    private String content;
+    private SensorDataSet content;
     private long sentTimestamp;
     
     public ClientMessage() {}
     
-    public ClientMessage(String content) {
+    public ClientMessage(SensorDataSet content) {
         this.id = UUID.randomUUID().toString();
         this.content = content;
         this.sentTimestamp = Instant.now().toEpochMilli();
@@ -25,11 +25,11 @@ public class ClientMessage implements Serializable {
         this.id = id;
     }
     
-    public String getContent() {
+    public SensorDataSet getContent() {
         return content;
     }
     
-    public void setContent(String content) {
+    public void setContent(SensorDataSet content) {
         this.content = content;
     }
     

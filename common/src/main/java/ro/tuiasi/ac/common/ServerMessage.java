@@ -3,8 +3,24 @@ package ro.tuiasi.ac.common;
 import java.io.Serializable;
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+//Tell Jackson how to handle polymorphic Command interface
+@JsonTypeInfo(
+ use = JsonTypeInfo.Id.NAME,
+ include = JsonTypeInfo.As.PROPERTY,
+ property = "commandType"  // Adds a field to identify the concrete type
+)
+@JsonSubTypes({
+ @JsonSubTypes.Type(value = MoveCommand.class, name = "MOVE"),
+ @JsonSubTypes.Type(value = RotateCommand.class, name = "ROTATE"),
+ @JsonSubTypes.Type(value = StopCommand.class, name = "STOP"),
+ @JsonSubTypes.Type(value = StartCommand.class, name = "START")
+})
 public class ServerMessage implements Serializable {
-    private String content;
+	
+    private Command content;
     private String clientMessageId;  // Track which client message this responds to
     private long serverReceivedTimestamp;
     private long serverSentTimestamp;
@@ -12,24 +28,24 @@ public class ServerMessage implements Serializable {
     public ServerMessage() {}
     
     // Constructor for server-initiated messages (no client tracking)
-    public ServerMessage(String content) {
+    public ServerMessage(Command content) {
         this.content = content;
         this.serverSentTimestamp = Instant.now().toEpochMilli();
     }
     
     // Constructor for response to client message
-    public ServerMessage(String content, ClientMessage clientMessage) {
+    public ServerMessage(Command content, ClientMessage clientMessage) {
         this.content = content;
         this.clientMessageId = clientMessage.getId();
         this.serverReceivedTimestamp = Instant.now().toEpochMilli();
         this.serverSentTimestamp = this.serverReceivedTimestamp; // Will be updated when actually sent
     }
     
-    public String getContent() {
+    public Command getContent() {
         return content;
     }
     
-    public void setContent(String content) {
+    public void setContent(Command content) {
         this.content = content;
     }
     

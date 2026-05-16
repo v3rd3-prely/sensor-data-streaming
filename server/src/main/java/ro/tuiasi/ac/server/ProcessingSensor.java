@@ -3,9 +3,9 @@ package ro.tuiasi.ac.server;
 import ro.tuiasi.ac.common.*;
 
 public class ProcessingSensor {
-	private final double lidarThresh = 5;
-	private final int redThresh = 200; // un pixel este rosu daca red> 200 green < 50, blue < 50
-	public Command processSensorDataSet(SensorDataSet data) {
+	private static final double lidarThresh = 5;
+	private static final int redThresh = 200; // un pixel este rosu daca red> 200 green < 50, blue < 50
+	public static Command processSensorDataSet(SensorDataSet data) {
 		double[][] leftLidarVals = data.leftLidarFrame().distancesCm();
 		double[][] rightLidarVals = data.rightLidarFrame().distancesCm();
 		
@@ -44,10 +44,12 @@ public class ProcessingSensor {
 
 	        // decizie
 	        if(obstacleLeft) {
+	        	System.out.println("Obstacle on the left side detected.");
 	            return new MoveCommand(MoveDirection.RIGHT, 10);
 	        }
 
 	        if(obstacleRight) {
+	        	System.out.println("Obstacle on the right side detected.");
 	            return new MoveCommand(MoveDirection.LEFT, 10);
 	        }
 	        
@@ -65,10 +67,13 @@ public class ProcessingSensor {
     					int targetX = i;
     					int targetY = j;
     					if(targetX + 10 < width/2) {
+    						System.out.println("Rotation left towards the target.");
     						return new RotateCommand(RotateDirection.LEFT, 10);
     					}else if(targetX - 10 > width/2) {
+    						System.out.println("Rotation right towards the target.");
     						return new RotateCommand(RotateDirection.RIGHT, 10);
     					}else if(targetY - 10 < height) {
+    						System.out.println("Moving towards the target.");
     						return new MoveCommand(MoveDirection.FRONT, 10);
     					}else {
     						System.out.println("Target reached.");
@@ -81,7 +86,7 @@ public class ProcessingSensor {
 	    		
 	    	
 
-	        return new MoveCommand(MoveDirection.FRONT, 10);
+	        return new StopCommand();
 	    }
 	
 	

@@ -40,7 +40,8 @@ public class ServerMain {
         // Send a test message to client after 5 seconds
         try {
             Thread.sleep(5000);
-            sendMessageToClient("Hello from Server!");
+            sendMessageToClient(new StartCommand());
+//            sendMessageToClient("Hello from Server!");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -49,7 +50,7 @@ public class ServerMain {
         keepAlive();
     }
     
-    private static void sendMessageToClient(String content) {
+    private static void sendMessageToClient(Command content) {
         ServerMessage message = new ServerMessage(content);
         message.setServerSentTimestamp(Instant.now().toEpochMilli());
         producer.sendMessage(Config.SERVER_TO_CLIENT_TOPIC, message);
@@ -60,17 +61,19 @@ public class ServerMain {
         long startProcessing = System.currentTimeMillis();
         System.out.println("⚙️ Processing: " + message.getContent());
         
+        Command content = ProcessingSensor.processSensorDataSet(message.getContent());
         // Simulate some processing work (you can adjust or remove this)
-        try {
-            Thread.sleep(10); // Simulate 10ms of processing
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+//        try {
+//            Thread.sleep(10); // Simulate 10ms of processing
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//        }
         
         long processingTime = System.currentTimeMillis() - startProcessing;
         
         // Create response message with timing information
-        ServerMessage response = new ServerMessage("Server received: " + message.getContent(), message);
+//        Command content = ProcessingSensor.processSensorDataSet(message.getContent());
+        ServerMessage response = new ServerMessage(content, message);
         response.setServerReceivedTimestamp(receiveTime);
         response.setServerSentTimestamp(Instant.now().toEpochMilli());
         

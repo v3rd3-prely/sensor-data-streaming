@@ -5,7 +5,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
@@ -13,7 +20,7 @@ import java.util.function.Consumer;
 
 public class KafkaConsumerUtil {
     private final KafkaConsumer<String, String> consumer;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper;
     private volatile boolean running = true;
     
     public KafkaConsumerUtil(String bootstrapServers, String groupId, String topic) {
@@ -27,6 +34,24 @@ public class KafkaConsumerUtil {
         
         this.consumer = new KafkaConsumer<>(props);
         consumer.subscribe(List.of(topic));
+        
+        // MODERN BUILDER PATTERN - Same as producer
+        PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
+            .allowIfSubType("ro.tuiasi.ac.common")
+            .allowIfBaseType(Command.class)
+            .build();
+        
+        this.objectMapper = JsonMapper.builder()
+            .activateDefaultTyping(
+                typeValidator,
+                JsonMapper.DefaultTyping.NON_FINAL,
+                com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
+            )
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .build();
+        
+        
         System.out.printf("✅ Subscribed to topic: %s (group: %s)%n", topic, groupId);
     }
     
