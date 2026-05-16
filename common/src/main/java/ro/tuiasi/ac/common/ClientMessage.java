@@ -70,6 +70,11 @@ public class ClientMessage implements Serializable {
 		return content;
 	}
 
+	/**
+	 * Sets the message content.
+	 *
+	 * @param content message content
+	 */
 	public void setContent(SensorDataSet content) {
 
 		this.content = content;

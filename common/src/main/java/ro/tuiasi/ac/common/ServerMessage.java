@@ -6,36 +6,29 @@ import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-//Tell Jackson how to handle polymorphic Command interface
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "commandType" // Adds a field
-																										// to identify
-																										// the concrete
-																										// type
-)
+/**
+ * Represents a message sent from the server to the client. Can be either a
+ * direct server message or a response to a specific client message.
+ * 
+ * @author Your Name
+ */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "commandType")
 @JsonSubTypes({ @JsonSubTypes.Type(value = MoveCommand.class, name = "MOVE"),
 		@JsonSubTypes.Type(value = RotateCommand.class, name = "ROTATE"),
 		@JsonSubTypes.Type(value = StopCommand.class, name = "STOP"),
 		@JsonSubTypes.Type(value = StartCommand.class, name = "START") })
-/**
- * Represents a message sent from the server to the client. Can be either a
- * direct server message or a response to a specific client message.
- */
 public class ServerMessage implements Serializable {
-	/**
-	 * Message content.
-	 */
+
+	/** Message content (a command to execute) */
 	private Command content;
-	/**
-	 * Identifier of the client message this message responds to.
-	 */
-	private String clientMessageId; // Track which client message this responds to
-	/**
-	 * Timestamp when the server received the client message.
-	 */
+
+	/** Identifier of the client message this message responds to */
+	private String clientMessageId;
+
+	/** Timestamp when the server received the client message */
 	private long serverReceivedTimestamp;
-	/**
-	 * Timestamp when the server sent the message.
-	 */
+
+	/** Timestamp when the server sent the message */
 	private long serverSentTimestamp;
 
 	/**
@@ -44,35 +37,28 @@ public class ServerMessage implements Serializable {
 	public ServerMessage() {
 	}
 
-	// Constructor for server-initiated messages (no client tracking)
-
 	/**
-     * Creates a server-generated message.
-     *
-     * @param content message content
-     */
+	 * Creates a server-generated message (no client tracking).
+	 *
+	 * @param content message content
+	 */
 	public ServerMessage(Command content) {
-
-        this.content = content;
-        this.serverSentTimestamp = Instant.now().toEpochMilli();
-    }
-
-	// Constructor for response to client message
+		this.content = content;
+		this.serverSentTimestamp = Instant.now().toEpochMilli();
+	}
 
 	/**
-     * Creates a response message for a client message.
-     *
-     * @param content response content
-     * @param clientMessage client message being answered
-     */
+	 * Creates a response message for a client message.
+	 *
+	 * @param content       response content
+	 * @param clientMessage client message being answered
+	 */
 	public ServerMessage(Command content, ClientMessage clientMessage) {
-
-        this.content = content;
-        this.clientMessageId = clientMessage.getId();
-        this.serverReceivedTimestamp = Instant.now().toEpochMilli();
-        this.serverSentTimestamp = this.serverReceivedTimestamp; // Will be updated when actually sent
-    }
-
+		this.content = content;
+		this.clientMessageId = clientMessage.getId();
+		this.serverReceivedTimestamp = Instant.now().toEpochMilli();
+		this.serverSentTimestamp = this.serverReceivedTimestamp;
+	}
 
 	/**
 	 * Returns the message content.
@@ -82,15 +68,15 @@ public class ServerMessage implements Serializable {
 	public Command getContent() {
 		return content;
 	}
-	/**
-     * Sets the message content.
-     *
-     * @param content message content
-     */
-	public void setContent(Command content) {
 
-        this.content = content;
-    }
+	/**
+	 * Sets the message content.
+	 *
+	 * @param content message content
+	 */
+	public void setContent(Command content) {
+		this.content = content;
+	}
 
 	/**
 	 * Returns the related client message identifier.
@@ -146,11 +132,6 @@ public class ServerMessage implements Serializable {
 		this.serverSentTimestamp = serverSentTimestamp;
 	}
 
-	/**
-	 * Returns a formatted string representation of the server message.
-	 *
-	 * @return formatted message string
-	 */
 	@Override
 	public String toString() {
 		if (clientMessageId != null) {
