@@ -9,8 +9,24 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Utility class for creating Kafka topics.
+ * Ensures that required Kafka topics exist
+ * before the application starts communication.
+ */
 public class KafkaTopicUtil {
+	
+	/**
+     * Default constructor.
+     */
+    public KafkaTopicUtil() {}
     
+	/**
+	 * Creates Kafka topics if they do not already exist.
+	 *
+	 * @param bootstrapServers Kafka bootstrap servers address
+	 * @param topics Kafka topic names to create
+	 */
     public static void createTopicsIfNotExist(String bootstrapServers, String... topics) {
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);

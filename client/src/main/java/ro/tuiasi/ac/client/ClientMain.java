@@ -4,20 +4,69 @@ import ro.tuiasi.ac.common.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Main entry point for the client application.
+ * Initializes Kafka communication, sends periodic messages
+ * to the server, receives server responses, and tracks
+ * message round-trip latency.
+ */
 public class ClientMain {
+	/**
+	 * Kafka producer used to send messages from the client to the server.
+	 */
     private static KafkaProducerUtil producer;
+    /**
+     * Kafka consumer used to receive messages from the server.
+     */
     private static KafkaConsumerUtil consumer;
+    /**
+     * Scheduler used to send messages periodically.
+     */
     private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    /**
+     * Counter used to generate sequential client message numbers.
+     */
     private static final AtomicInteger messageCounter = new AtomicInteger(1);
     
     // Store sent messages to calculate latency when response arrives
+    /**
+     * Stores sent message ids and their send timestamps.
+     * Used to calculate round-trip latency when responses arrive.
+     */
     private static final ConcurrentHashMap<String, Long> pendingMessages = new ConcurrentHashMap<>();
-    
+    /**
+     * Total number of messages for which latency was calculated.
+     */
     private static final AtomicInteger totalMessages = new AtomicInteger(0);
+    /**
+     * Sum of all measured round-trip times.
+     */
     private static long totalRoundTripTime = 0;
+    /**
+     * Minimum measured round-trip time.
+     */
     private static long minRoundTripTime = Long.MAX_VALUE;
+    /**
+     * Maximum measured round-trip time.
+     */
     private static long maxRoundTripTime = 0;
     
+    /**
+     * Default constructor. 
+     * */
+    public ClientMain()
+    {
+    	
+    }
+    
+    /**
+     * Starts the client application.
+     * Initializes Kafka topics, producer, consumer,
+     * starts listening for server messages, and begins
+     * sending periodic client messages.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         System.out.println("🚀 Starting Client...");
         String bootstrapServers = Config.getKafkaBootstrapServers();
@@ -51,7 +100,11 @@ public class ClientMain {
         // Keep client running
         keepAlive();
     }
-    
+    /**
+     * Starts sending client messages to the server at a fixed interval.
+     * Each sent message is stored together with its timestamp
+     * so that latency can be calculated when the server response arrives.
+     */
     private static void startSendingMessages() {
         System.out.println("📡 Client starting to send messages every 5 seconds...");
         System.out.println("📊 Latency tracking enabled - will measure round-trip time for each message\n");
@@ -69,7 +122,13 @@ public class ClientMain {
             System.out.println("   ⏱️  Sent at: " + sendTime);
         }, 0, 5, TimeUnit.SECONDS);
     }
-    
+    /**
+     * Processes a message received from the server.
+     * If the message is a response to a previously sent client message,
+     * the method calculates round-trip latency and updates statistics.
+     *
+     * @param message server message received from Kafka
+     */
     private static void handleServerMessage(ServerMessage message) {
         System.out.println("⚙️ Processing server response: " + message.getContent());
         
@@ -128,6 +187,10 @@ public class ClientMain {
         }
     }
     
+    /**
+     * Prints aggregated latency statistics,
+     * including average, minimum, and maximum round-trip time.
+     */
     private static void printRunningStats() {
         double avgRtt = totalRoundTripTime / (double) totalMessages.get();
         System.out.println("\n📊 ─────────── RUNNING LATENCY STATS ───────────");
@@ -137,12 +200,17 @@ public class ClientMain {
         System.out.printf("   Max RTT: %d ms%n", maxRoundTripTime);
         System.out.println("   ───────────────────────────────────────────\n");
     }
-    
+    /**
+     * Prints the number of messages that are still waiting
+     * for a server response.
+     */
     private static void printLatencyStats() {
         // This could be expanded to track min/max/average
         System.out.println("📈 Active pending messages: " + pendingMessages.size());
     }
-    
+    /**
+     * Keeps the client application running indefinitely.
+     */
     private static void keepAlive() {
         try {
             Thread.sleep(Long.MAX_VALUE);
