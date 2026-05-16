@@ -14,10 +14,34 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 
 import java.util.Properties;
 
+/**
+ * Utility class for sending messages to Kafka topics. Serializes Java objects
+ * into JSON format and publishes them through a Kafka producer.
+ */
 public class KafkaProducerUtil {
+
+	/**
+	 * Kafka producer used for publishing messages.
+	 */
 	private final KafkaProducer<String, String> producer;
+	/**
+	 * JSON object mapper used for message serialization.
+	 */
 	private final JsonMapper objectMapper;
 
+	/**
+	 * Default constructor.
+	 */
+	public KafkaProducerUtil() {
+		this.producer = null;
+		this.objectMapper = null;
+	}
+
+	/**
+	 * Creates a Kafka producer utility.
+	 *
+	 * @param bootstrapServers Kafka bootstrap servers address
+	 */
 	public KafkaProducerUtil(String bootstrapServers) {
 		Properties props = new Properties();
 		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -49,6 +73,12 @@ public class KafkaProducerUtil {
 				.configure(SerializationFeature.INDENT_OUTPUT, false).build();
 	}
 
+	/**
+	 * Serializes and sends a message to a Kafka topic.
+	 *
+	 * @param topic   Kafka topic name
+	 * @param message Java object to serialize and send
+	 */
 	public void sendMessage(String topic, Object message) {
 		try {
 			String json = objectMapper.writeValueAsString(message);
@@ -66,6 +96,9 @@ public class KafkaProducerUtil {
 		}
 	}
 
+	/**
+	 * Flushes pending messages and closes the Kafka producer.
+	 */
 	public void close() {
 		producer.flush();
 		producer.close();
