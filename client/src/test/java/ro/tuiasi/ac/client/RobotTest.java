@@ -83,13 +83,13 @@ public class RobotTest {
 
         Robot testRobot = new Robot(sensorSet);
 
-        int initialX = sensorSet.cameraSensor.getTargetX();
+        int initialX = sensorSet.getCameraSensor().getTargetX();
 
         testRobot.executeCommand(
                 new MoveCommand(MoveDirection.LEFT, 20)
         );
 
-        int updatedX = sensorSet.cameraSensor.getTargetX();
+        int updatedX = sensorSet.getCameraSensor().getTargetX();
 
         assertNotEquals(initialX, updatedX);
     }
