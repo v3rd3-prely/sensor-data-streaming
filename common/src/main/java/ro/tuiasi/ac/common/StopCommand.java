@@ -4,25 +4,25 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Command to stop the robot's data transmission.
- * 
+ *
  * @author Your Name
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StopCommand implements Command {
+public final class StopCommand implements Command {
 
-	/**
-	 * Default constructor required for Jackson deserialization.
-	 */
-	public StopCommand() {
-	}
+    /**
+     * Default constructor required for Jackson deserialization.
+     */
+    public StopCommand() {
+    }
 
-	@Override
-	public CommandType getType() {
-		return CommandType.STOP;
-	}
+    @Override
+    public CommandType getType() {
+        return CommandType.STOP;
+    }
 
-	@Override
-	public String toString() {
-		return "StopCommand{}";
-	}
+    @Override
+    public String toString() {
+        return "StopCommand{}";
+    }
 }

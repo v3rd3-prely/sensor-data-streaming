@@ -4,58 +4,65 @@ import java.util.Random;
 
 /**
  * Simulated LiDAR sensor that generates random distance measurements.
- * 
+ *
  * @author Your Name
  */
-public class LidarSensor implements Sensor<LidarFrame> {
+public final class LidarSensor implements Sensor<LidarFrame> {
 
-	/** Unique identifier for this sensor */
-	private final String id;
+    /** Minimum distance in centimeters. */
+    private static final int MIN_DISTANCE_CM = 50;
 
-	/** Width of the LiDAR scan in points */
-	private static final int WIDTH = 100;
+    /** Maximum distance variation in centimeters. */
+    private static final int DISTANCE_RANGE_CM = 450;
 
-	/** Height of the LiDAR scan in points */
-	private static final int HEIGHT = 100;
+    /** Unique identifier for this sensor. */
+    private final String id;
 
-	/** Random number generator for simulated distance values */
-	private final Random random = new Random();
+    /** Width of the LiDAR scan in points. */
+    private static final int WIDTH = 100;
 
-	/**
-	 * Creates a new LiDAR sensor with the specified ID.
-	 * 
-	 * @param id Unique identifier for this sensor
-	 */
-	public LidarSensor(String id) {
-		this.id = id;
-	}
+    /** Height of the LiDAR scan in points. */
+    private static final int HEIGHT = 100;
 
-	@Override
-	public String getId() {
-		return id;
-	}
+    /** Random number generator for simulated distance values. */
+    private final Random random = new Random();
 
-	@Override
-	public SensorType getType() {
-		return SensorType.LIDAR;
-	}
+    /**
+     * Creates a new LiDAR sensor with the specified ID.
+     *
+     * @param idParam Unique identifier for this sensor
+     */
+    public LidarSensor(final String idParam) {
+        this.id = idParam;
+    }
 
-	/**
-	 * Generates a simulated LiDAR frame with random distance measurements.
-	 * Distances range from 50 to 500 cm.
-	 * 
-	 * @return LidarFrame containing a 100x100 grid of random distances
-	 */
-	@Override
-	public LidarFrame readData() {
-		double[][] distances = new double[HEIGHT][WIDTH];
+    @Override
+    public String getId() {
+        return id;
+    }
 
-		for (int y = 0; y < HEIGHT; y++) {
-			for (int x = 0; x < WIDTH; x++) {
-				distances[y][x] = 50 + random.nextDouble() * 450;
-			}
-		}
+    @Override
+    public SensorType getType() {
+        return SensorType.LIDAR;
+    }
 
-		return new LidarFrame(WIDTH, HEIGHT, distances);
-	}
+    /**
+     * Generates a simulated LiDAR frame with random distance measurements.
+     * Distances range from 50 to 500 cm.
+     *
+     * @return LidarFrame containing a 100x100 grid of random distances
+     */
+    @Override
+    public LidarFrame readData() {
+        double[][] distances = new double[HEIGHT][WIDTH];
+
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                distances[y][x] = MIN_DISTANCE_CM
+                        + random.nextDouble() * DISTANCE_RANGE_CM;
+            }
+        }
+
+        return new LidarFrame(WIDTH, HEIGHT, distances);
+    }
 }

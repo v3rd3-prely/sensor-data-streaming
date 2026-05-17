@@ -16,265 +16,273 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-//import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Main entry point for the client application. Initializes Kafka communication,
- * sends periodic messages to the server, receives server responses, and tracks
- * message round-trip latency.
+ * Main entry point for the client application.
+ * Initializes Kafka communication, sends periodic messages to the server,
+ * receives server responses, and tracks message round-trip latency.
+ *
+ * @author Your Name
  */
-public class ClientMain {
+public final class ClientMain {
 
-	/**
-	 * Kafka producer used to send messages from the client to the server.
-	 */
-	private static KafkaProducerUtil producer;
-	/**
-	 * Kafka consumer used to receive messages from the server.
-	 */
-	private static KafkaConsumerUtil consumer;
-	/**
-	 * Scheduler used to send messages periodically.
-	 */
-	private static ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    /** Initial delay for sending messages in milliseconds. */
+    private static final int INITIAL_DELAY_MS = 3000;
 
-	// Store sent messages to calculate latency when response arrives
-	/**
-	 * Stores sent message ids and their send timestamps. Used to calculate
-	 * round-trip latency when responses arrive.
-	 */
-	private static final ConcurrentHashMap<String, Long> pendingMessages = new ConcurrentHashMap<>();
+    /** Interval between messages in milliseconds. */
+    private static final int SEND_INTERVAL_MS = 100;
 
-	/**
-	 * Total number of messages for which latency was calculated.
-	 */
-	private static final AtomicInteger totalMessages = new AtomicInteger(0);
+    /** Number of messages after which to print stats. */
+    private static final int STATS_INTERVAL = 5;
 
-	/**
-	 * Sum of all measured round-trip times.
-	 */
-	private static long totalRoundTripTime;
-	/**
-	 * Minimum measured round-trip time.
-	 */
-	private static long minRoundTripTime = Long.MAX_VALUE;
-	/**
-	 * Maximum measured round-trip time.
-	 */
-	private static long maxRoundTripTime;
+    /** Kafka producer used to send messages from the client to the server. */
+    private static KafkaProducerUtil producer;
 
-	/**
-	 * Logger for messages acknowledging messages received
-	 */
-	private static final Logger log = LoggerFactory.getLogger(ClientMain.class);
+    /** Kafka consumer used to receive messages from the server. */
+    private static KafkaConsumerUtil consumer;
 
-	/**
-	 * Robot object that collects sensor data sets and executes commands
-	 */
-	private static Robot robot;
+    /** Scheduler used to send messages periodically. */
+    private static ScheduledExecutorService scheduler =
+            Executors.newSingleThreadScheduledExecutor();
 
-	/**
-	 * Default constructor.
-	 */
-	private ClientMain() {
+    /**
+     * Stores sent message ids and their send timestamps.
+     * Used to calculate round-trip latency when responses arrive.
+     */
+    private static final ConcurrentHashMap<String, Long> PENDING_MESSAGES =
+            new ConcurrentHashMap<>();
 
-	}
+    /** Total number of messages for which latency was calculated. */
+    private static final AtomicInteger TOTAL_MESSAGES = new AtomicInteger(0);
 
-	/**
-	 * Starts the client application. Initializes Kafka topics, producer, consumer,
-	 * starts listening for server messages, and begins sending periodic client
-	 * messages.
-	 *
-	 * @param args command-line arguments
-	 */
-	public static void main(String[] args) {
-//		log.info("Initializing robot...");
-		log.info("Initializing robot...");
+    /** Sum of all measured round-trip times. */
+    private static long totalRoundTripTime;
 
-		CameraSensor robotCamera = new CameraSensor("camera", 0, 0);
-		LidarSensor robotLeftLidar = new LidarSensor("leftLidar");
-		LidarSensor robotRightLidar = new LidarSensor("rightLidar");
-		GyroscopeSensor robotGyro = new GyroscopeSensor("gyro");
+    /** Minimum measured round-trip time. */
+    private static long minRoundTripTime = Long.MAX_VALUE;
 
-		SensorSet robotSensorSet = new SensorSet(robotCamera, robotLeftLidar, robotRightLidar, robotGyro);
-		robot = new Robot(robotSensorSet);
+    /** Maximum measured round-trip time. */
+    private static long maxRoundTripTime;
 
-//		log.info("Robot initialized");
-		log.info("Robot initialized");
+    /** Logger for this class. */
+    private static final Logger LOG = LoggerFactory.getLogger(ClientMain.class);
 
-//		log.info("🚀 Starting Client...");
-		log.info("🚀 Starting Client...");
-		String bootstrapServers = Config.getKafkaBootstrapServers();
+    /** Robot object that collects sensor data sets and executes commands. */
+    private static Robot robot;
 
-		// Create topics if they don't exist
-		KafkaTopicUtil.createTopicsIfNotExist(bootstrapServers, Config.CLIENT_TO_SERVER_TOPIC,
-				Config.SERVER_TO_CLIENT_TOPIC);
+    /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with only static methods.
+     */
+    private ClientMain() {
+        // Utility class - no instantiation needed
+    }
 
-		// Initialize producer and consumer
-		producer = new KafkaProducerUtil(bootstrapServers);
-		consumer = new KafkaConsumerUtil(bootstrapServers, "client-group", Config.SERVER_TO_CLIENT_TOPIC);
+    /**
+     * Starts the client application.
+     * Initializes Kafka topics, producer, consumer, starts listening for server
+     * messages, and begins sending periodic client messages.
+     *
+     * @param args command-line arguments (unused)
+     */
+    public static void main(final String[] args) {
+        LOG.info("Initializing robot...");
 
-		// Listen for messages from server
-		consumer.listen(ServerMessage.class, message -> {
-			ServerMessage serverMsg = (ServerMessage) message;
-			if (log.isInfoEnabled()) {
-				log.info("📥 Client received: " + serverMsg);
-			}
-			handleServerMessage(serverMsg);
-		});
+        CameraSensor robotCamera = new CameraSensor("camera", 0, 0);
+        LidarSensor robotLeftLidar = new LidarSensor("leftLidar");
+        LidarSensor robotRightLidar = new LidarSensor("rightLidar");
+        GyroscopeSensor robotGyro = new GyroscopeSensor("gyro");
 
-		log.info("✅ Client ready and listening");
+        SensorSet robotSensorSet = new SensorSet(
+                robotCamera,
+                robotLeftLidar,
+                robotRightLidar,
+                robotGyro);
+        robot = new Robot(robotSensorSet);
 
-		// Start sending periodic messages to server after 3 seconds
-		try {
-			Thread.sleep(3000);
-			startSendingMessages();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
+        LOG.info("Robot initialized");
+        LOG.info("🚀 Starting Client...");
 
-		// Keep client running
-		keepAlive();
-	}
+        String bootstrapServers = Config.getKafkaBootstrapServers();
 
-	/**
-	 * Starts sending client messages to the server at a fixed interval. Each sent
-	 * message is stored together with its timestamp so that latency can be
-	 * calculated when the server response arrives.
-	 */
-	private static void startSendingMessages() {
-		log.info("📡 Client starting to send messages every 100 miliseconds...");
-		log.info("📊 Latency tracking enabled - will measure round-trip time for each message\n");
+        // Create topics if they don't exist
+        KafkaTopicUtil.createTopicsIfNotExist(
+                bootstrapServers,
+                Config.CLIENT_TO_SERVER_TOPIC,
+                Config.SERVER_TO_CLIENT_TOPIC);
 
-		scheduler.scheduleAtFixedRate(() -> {
-//            String content = "Message #" + messageCounter.getAndIncrement() + " from Client";
-			if (robot.isSending()) {
+        // Initialize producer and consumer
+        producer = new KafkaProducerUtil(bootstrapServers);
+        consumer = new KafkaConsumerUtil(
+                bootstrapServers,
+                "client-group",
+                Config.SERVER_TO_CLIENT_TOPIC);
 
-				SensorDataSet content = robot.collectData();
-				ClientMessage message = new ClientMessage(content);
+        // Listen for messages from server
+        consumer.listen(ServerMessage.class, message -> {
+            ServerMessage serverMsg = (ServerMessage) message;
+            if (LOG.isInfoEnabled()) {
+                LOG.info("📥 Client received: " + serverMsg);
+            }
+            handleServerMessage(serverMsg);
+        });
 
-				// Store sent time before sending
-				long sendTime = System.currentTimeMillis();
-				pendingMessages.put(message.getId(), sendTime);
+        LOG.info("✅ Client ready and listening");
 
-				producer.sendMessage(Config.CLIENT_TO_SERVER_TOPIC, message);
-				if (log.isInfoEnabled()) {
-					log.info("📤 Client sent: " + message);
-					log.info("   ⏱️  Sent at: " + sendTime);
-				}
-			}
-		}, 0, 100, TimeUnit.MILLISECONDS);
-	}
+        // Start sending periodic messages to server after delay
+        try {
+            Thread.sleep(INITIAL_DELAY_MS);
+            startSendingMessages();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
-	/**
-	 * Processes a message received from the server. If the message is a response to
-	 * a previously sent client message, the method calculates round-trip latency
-	 * and updates statistics.
-	 *
-	 * @param message server message received from Kafka
-	 */
-	private static void handleServerMessage(ServerMessage message) {
-		if (log.isInfoEnabled()) {
-			log.info("⚙️ Processing server response: " + message.getContent());
-		}
-		robot.executeCommand(message.getContent());
-		// Check if this is a response to a client message
-		if (message.getClientMessageId() != null) {
-			Long sentTime = pendingMessages.remove(message.getClientMessageId());
+        // Keep client running
+        keepAlive();
+    }
 
-			if (sentTime != null) {
-				long receivedTime = System.currentTimeMillis();
-				long roundTripTime = receivedTime - sentTime;
+    /**
+     * Starts sending client messages to the server at a fixed interval.
+     * Each sent message is stored together with its timestamp so that latency
+     * can be calculated when the server response arrives.
+     */
+    private static void startSendingMessages() {
+        LOG.info("📡 Client starting to send messages every 100 miliseconds...");
+        LOG.info("📊 Latency tracking enabled - will measure round-trip time\n");
 
-				// Update statistics
-				totalMessages.incrementAndGet();
-				totalRoundTripTime += roundTripTime;
-				minRoundTripTime = Math.min(minRoundTripTime, roundTripTime);
-				maxRoundTripTime = Math.max(maxRoundTripTime, roundTripTime);
+        scheduler.scheduleAtFixedRate(() -> {
+            if (robot.isSending()) {
+                SensorDataSet content = robot.collectData();
+                ClientMessage message = new ClientMessage(content);
 
-				// Calculate server processing time
-				long serverProcessingTime = message.getServerSentTimestamp() - message.getServerReceivedTimestamp();
-				long networkTime = roundTripTime - serverProcessingTime;
+                // Store sent time before sending
+                long sendTime = System.currentTimeMillis();
+                PENDING_MESSAGES.put(message.getId(), sendTime);
 
-				if (log.isInfoEnabled()) {
-					log.info("\n📊 ═══════════════ LATENCY REPORT ═══════════════");
-					log.info("   📨 Message ID: {}", message.getClientMessageId());
-					log.info("   ⏰ Client sent:        {}", sentTime);
-					log.info("   🖥️  Server received:    {}", message.getServerReceivedTimestamp());
-					log.info("   🖥️  Server sent:        {}", message.getServerSentTimestamp());
-					log.info("   📱 Client received:    {}", receivedTime);
-					log.info("   ───────────────────────────────────────────");
-					log.info("   ⚙️  Server processing:   {} ms", serverProcessingTime);
-					log.info("   🌐 Network round-trip:  {} ms", networkTime);
-					log.info("   🔄 Total round-trip:    {} ms", roundTripTime);
-					log.info("   ═══════════════════════════════════════════\n");
-				}
+                producer.sendMessage(Config.CLIENT_TO_SERVER_TOPIC, message);
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("📤 Client sent: " + message);
+                    LOG.info("   ⏱️  Sent at: " + sendTime);
+                }
+            }
+        }, 0, SEND_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
 
-				// Optional: Calculate statistics
-				printLatencyStats();
+    /**
+     * Processes a message received from the server.
+     * If the message is a response to a previously sent client message,
+     * calculates round-trip latency and updates statistics.
+     *
+     * @param message server message received from Kafka
+     */
+    private static void handleServerMessage(final ServerMessage message) {
+        if (LOG.isInfoEnabled()) {
+            LOG.info("⚙️ Processing server response: " + message.getContent());
+        }
+        robot.executeCommand(message.getContent());
 
-				// Print running average every 5 messages
-				if (totalMessages.get() % 5 == 0) {
-					printRunningStats();
-				}
+        // Check if this is a response to a client message
+        if (message.getClientMessageId() != null) {
+            Long sentTime = PENDING_MESSAGES.remove(
+                     message.getClientMessageId());
 
-			} else {
-				if (log.isInfoEnabled()) {
-					log.info("⚠️ Received response for unknown message ID: " + message.getClientMessageId());
-				}
-			}
-		} else {
-			log.info("💬 Server-initiated message (no latency tracking)");
-		}
+            if (sentTime != null) {
+                long receivedTime = System.currentTimeMillis();
+                long roundTripTime = receivedTime - sentTime;
 
-//        if (message.getContent().contains("received")) {
-//            log.info("✅ Server acknowledged our message!");
-//        }
+                // Update statistics
+                TOTAL_MESSAGES.incrementAndGet();
+                totalRoundTripTime += roundTripTime;
+                minRoundTripTime = Math.min(minRoundTripTime, roundTripTime);
+                maxRoundTripTime = Math.max(maxRoundTripTime, roundTripTime);
 
-		if (message.getClientMessageId() != null) {
-			pendingMessages.remove(message.getClientMessageId());
+                // Calculate server processing time
+                long serverProcessingTime = message.getServerSentTimestamp()
+                        - message.getServerReceivedTimestamp();
+                long networkTime = roundTripTime - serverProcessingTime;
 
-		}
-	}
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("📊 ═════════════ LATENCY REPORT ═════════════");
+                    LOG.info("   📨 Message ID: {}",
+                            message.getClientMessageId());
+                    LOG.info("   ⏰ Client sent: {}",
+                            sentTime);
+                    LOG.info("   🖥️  Server received: {}",
+                            message.getServerReceivedTimestamp());
+                    LOG.info("   🖥️  Server sent: {}",
+                            message.getServerSentTimestamp());
+                    LOG.info("   📱 Client received: {}",
+                            receivedTime);
+                    // Line 189 - fixed (shorter divider)
+                    LOG.info("   ───────────────────────────────");
+                    LOG.info("   ⚙️  Server processing: {} ms",
+                            serverProcessingTime);
+                    LOG.info("   🌐 Network round-trip: {} ms",
+                            networkTime);
+                    LOG.info("   🔄 Total round-trip: {} ms",
+                            roundTripTime);
+                    // Lines 207-208 - fixed (shorter divider)
+                    LOG.info("   ═══════════════════════════════\n");
+                }
 
-	/**
-	 * Prints aggregated latency statistics, including average, minimum, and maximum
-	 * round-trip time.
-	 */
-	private static void printRunningStats() {
-		double avgRtt = totalRoundTripTime / (double) totalMessages.get();
-		if (log.isInfoEnabled()) {
-			log.info("\n📊 ─────────── RUNNING LATENCY STATS ───────────");
-			log.info("   Messages sent: {}", totalMessages.get());
-			log.info("   Avg RTT: {} ms", avgRtt);
-			log.info("   Min RTT: {} ms", minRoundTripTime);
-			log.info("   Max RTT: {} ms", maxRoundTripTime);
-			log.info("   ───────────────────────────────────────────\n");
-		}
-	}
+                printLatencyStats();
 
-	/**
-	 * Prints the number of messages that are still waiting for a server response.
-	 */
-	private static void printLatencyStats() {
-		// This could be expanded to track min/max/average
-		if (log.isInfoEnabled()) {
-			log.info("📈 Active pending messages: " + pendingMessages.size());
-		}
-	}
+                // Print running average every STATS_INTERVAL messages
+                if (TOTAL_MESSAGES.get() % STATS_INTERVAL == 0) {
+                    printRunningStats();
+                }
+            } else {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("⚠️ Received response for unknown message ID: "
+                            + message.getClientMessageId());
+                }
+            }
+        } else {
+            LOG.info("💬 Server-initiated message (no latency tracking)");
+        }
 
-	/**
-	 * Keeps the client application running indefinitely.
-	 */
-	private static void keepAlive() {
-		try {
-			Thread.sleep(Long.MAX_VALUE);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
-	}
+        if (message.getClientMessageId() != null) {
+            // Line 220 - fixed (removed duplicate removal)
+            PENDING_MESSAGES.remove(message.getClientMessageId());
+        }
+    }
 
+    /**
+     * Prints aggregated latency statistics.
+     * Includes average, minimum, and maximum round-trip time.
+     */
+    private static void printRunningStats() {
+        double avgRtt = totalRoundTripTime / (double) TOTAL_MESSAGES.get();
+        if (LOG.isInfoEnabled()) {
+            LOG.info("\n📊 ─────────── RUNNING LATENCY STATS ───────────");
+            LOG.info("   Messages sent: {}", TOTAL_MESSAGES.get());
+            LOG.info("   Avg RTT: {} ms", String.format("%.2f", avgRtt));
+            LOG.info("   Min RTT: {} ms", minRoundTripTime);
+            LOG.info("   Max RTT: {} ms", maxRoundTripTime);
+            LOG.info("   ───────────────────────────────────────────\n");
+        }
+    }
+
+    /**
+     * Prints the number of messages waiting for a server response.
+     */
+    private static void printLatencyStats() {
+        if (LOG.isInfoEnabled()) {
+            LOG.info("📈 Active pending messages: " + PENDING_MESSAGES.size());
+        }
+    }
+
+    /**
+     * Keeps the client application running indefinitely.
+     */
+    private static void keepAlive() {
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 }

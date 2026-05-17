@@ -2,16 +2,17 @@ package ro.tuiasi.ac.common;
 
 /**
  * Enumeration of available sensor types.
- * 
+ *
  * @author Your Name
  */
 public enum SensorType {
-	/** Visual/camera sensor */
-	CAMERA,
 
-	/** LiDAR distance measurement sensor */
-	LIDAR,
+    /** Visual/camera sensor. */
+    CAMERA,
 
-	/** Gyroscope orientation sensor */
-	GYROSCOPE
+    /** LiDAR distance measurement sensor. */
+    LIDAR,
+
+    /** Gyroscope orientation sensor. */
+    GYROSCOPE
 }

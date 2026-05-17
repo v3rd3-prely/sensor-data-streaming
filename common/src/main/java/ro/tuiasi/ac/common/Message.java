@@ -7,32 +7,32 @@ import java.io.Serializable;
  * application components.
  */
 public class Message implements Serializable {
-	/**
-	 * Message text value.
-	 */
-	private String val;
+    /**
+     * Message text value.
+     */
+    private String val;
 
-	/**
-	 * Default constructor.
-	 */
-	public Message() {
-	}
+    /**
+     * Default constructor.
+     */
+    public Message() {
+    }
 
-	/**
-	 * Returns the message value.
-	 *
-	 * @return message text
-	 */
-	public String getVal() {
-		return this.val;
-	}
+    /**
+     * Returns the message value.
+     *
+     * @return message text
+     */
+    public String getVal() {
+        return this.val;
+    }
 
-	/**
-	 * Sets the message value.
-	 *
-	 * @param val message text
-	 */
-	public void setVal(String val) {
-		this.val = val;
-	}
+    /**
+     * Sets the message value.
+     *
+     * @param valPar message text
+     */
+    public void setVal(final String valPar) {
+        this.val = valPar;
+    }
 }

@@ -20,121 +20,139 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 /**
- * Utility class for consuming Kafka messages. Subscribes to a Kafka topic,
- * listens for incoming JSON messages, deserializes them into Java objects, and
- * passes them to a handler.
+ * Utility class for consuming Kafka messages.
+ * Subscribes to a Kafka topic, listens for incoming JSON messages,
+ * deserializes them into Java objects, and passes them to a handler.
  */
 public class KafkaConsumerUtil {
-	/**
-	 * Kafka consumer used for reading messages from topics.
-	 */
-	private final KafkaConsumer<String, String> consumer;
 
-	/**
-	 * JSON object mapper used for message deserialization.
-	 */
-	private final JsonMapper objectMapper;
+    /** Poll timeout in milliseconds. */
+    private static final int POLL_TIMEOUT_MS = 500;
 
-	/**
-	 * Controls the polling loop execution.
-	 */
-	private volatile boolean running = true;
-	/**
-	 * Logger
-	 */
-	private static final Logger log = LoggerFactory.getLogger(KafkaConsumerUtil.class);
+    /** Kafka consumer used for reading messages from topics. */
+    private final KafkaConsumer<String, String> consumer;
 
-	/**
-	 * Default constructor.
-	 */
-	public KafkaConsumerUtil() {
-		this.consumer = null;
-		this.objectMapper = null;
-	}
+    /** JSON object mapper used for message deserialization. */
+    private final JsonMapper objectMapper;
 
-	/**
-	 * Creates a Kafka consumer utility and subscribes it to a topic.
-	 *
-	 * @param bootstrapServers Kafka bootstrap servers address
-	 * @param groupId          Kafka consumer group identifier
-	 * @param topic            Kafka topic to subscribe to
-	 */
-	public KafkaConsumerUtil(String bootstrapServers, String groupId, String topic) {
-		Properties props = new Properties();
-		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-		props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-		props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-		props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    /** Controls the polling loop execution. */
+    private volatile boolean running = true;
 
-		this.consumer = new KafkaConsumer<>(props);
-		consumer.subscribe(List.of(topic));
+    /** Logger for this class. */
+    private static final Logger LOG = LoggerFactory.getLogger(
+            KafkaConsumerUtil.class);
 
-		// MODERN BUILDER PATTERN - Same as producer
-		PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-				.allowIfSubType("ro.tuiasi.ac.common").allowIfBaseType(Command.class).build();
+    /**
+     * Default constructor (not recommended - creates unusable instance).
+     * Use the parameterized constructor instead.
+     *
+     * @deprecated Use {@link #KafkaConsumerUtil(String, String, String)}
+     */
+    @Deprecated
+    public KafkaConsumerUtil() {
+        this.consumer = null;
+        this.objectMapper = null;
+    }
 
-		this.objectMapper = JsonMapper.builder()
-				.activateDefaultTyping(typeValidator, JsonMapper.DefaultTyping.NON_FINAL,
-						com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY)
-				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-				.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).build();
+    /**
+     * Creates a Kafka consumer utility and subscribes it to a topic.
+     *
+     * @param bootstrapServers Kafka bootstrap servers address
+     * @param groupId Kafka consumer group identifier
+     * @param topic Kafka topic to subscribe to
+     */
+    public KafkaConsumerUtil(final String bootstrapServers,
+            final String groupId, final String topic) {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getName());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 
-		log.info("✅ Subscribed to topic: %s (group: %s)%n", topic, groupId);
-	}
+        this.consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(List.of(topic));
 
-	/**
-	 * Starts listening for Kafka messages in a background thread. Each received
-	 * message is deserialized into the specified class and passed to the provided
-	 * handler.
-	 *
-	 * @param messageClass class used for JSON deserialization
-	 * @param handler      function that processes the deserialized message
-	 */
-	public void listen(Class<?> messageClass, Consumer<Object> handler) {
-		Thread pollingThread = new Thread(() -> {
-			while (running) {
-				try {
-					ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
-					for (ConsumerRecord<String, String> record : records) {
-						try {
-							Object message = objectMapper.readValue(record.value(), messageClass);
-							if (log.isInfoEnabled())
-								log.info("📨 Received from %s [p%d, o%d]%n", record.topic(), record.partition(),
-										record.offset());
-							handler.accept(message);
-						} catch (Exception e) {
-							if (log.isErrorEnabled())
-								log.error("❌ Deserialization error: " + e.getMessage());
-						}
-					}
-				} catch (Exception e) {
-					if (running) {
-						if (log.isErrorEnabled())
-							log.error("❌ Polling error: " + e.getMessage());
-					}
-				}
-			}
-		});
-		pollingThread.setDaemon(true);
-		pollingThread.start();
-	}
+        // Configure polymorphic type validation
+        PolymorphicTypeValidator typeValidator =
+                BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("ro.tuiasi.ac.common")
+                .allowIfBaseType(Command.class)
+                .build();
 
-	/**
-	 * Stops the Kafka polling loop.
-	 */
+        this.objectMapper = JsonMapper.builder()
+                .activateDefaultTyping(typeValidator,
+                        JsonMapper.DefaultTyping.NON_FINAL,
+                        com.fasterxml.jackson.
+                        annotation.JsonTypeInfo.As.PROPERTY)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                        false)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .build();
 
-	public void stop() {
-		running = false;
-		consumer.wakeup();
-	}
+        LOG.info("✅ Subscribed to topic: {} (group: {})", topic, groupId);
+    }
 
-	/**
-	 * Stops the consumer and closes the Kafka connection.
-	 */
-	public void close() {
-		stop();
-		consumer.close();
-	}
+    /**
+     * Starts listening for Kafka messages in a background thread.
+     * Each received message is deserialized into the specified class
+     * and passed to the provided handler.
+     *
+     * @param messageClass class used for JSON deserialization
+     * @param handler function that processes the deserialized message
+     */
+    public void listen(final Class<?> messageClass,
+            final Consumer<Object> handler) {
+        Thread pollingThread = new Thread(() -> {
+            while (running) {
+                try {
+                    ConsumerRecords<String, String> records =
+                            consumer.poll(Duration.ofMillis(POLL_TIMEOUT_MS));
+                    for (ConsumerRecord<String, String> record : records) {
+                        try {
+                            Object message = objectMapper.readValue(
+                                    record.value(), messageClass);
+                            if (LOG.isInfoEnabled()) {
+                                LOG.info("📨 Received from {} [p{}, o{}]",
+                                        record.topic(), record.partition(),
+                                        record.offset());
+                            }
+                            handler.accept(message);
+                        } catch (Exception e) {
+                            if (LOG.isErrorEnabled()) {
+                                LOG.error("❌ Deserialization error: {}",
+                                        e.getMessage());
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    if (running && LOG.isErrorEnabled()) {
+                        LOG.error("❌ Polling error: {}", e.getMessage());
+                    }
+                }
+            }
+        });
+        pollingThread.setDaemon(true);
+        pollingThread.start();
+    }
+
+    /**
+     * Stops the Kafka polling loop.
+     */
+    public void stop() {
+        running = false;
+        consumer.wakeup();
+    }
+
+    /**
+     * Stops the consumer and closes the Kafka connection.
+     */
+    public void close() {
+        stop();
+        consumer.close();
+    }
 }
