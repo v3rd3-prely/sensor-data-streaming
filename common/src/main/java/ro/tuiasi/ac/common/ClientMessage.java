@@ -5,101 +5,102 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Represents a message sent from the client application. Contains a unique
- * identifier, message content, and the timestamp when the message was created.
+ * Represents a message sent from the client application.
+ * Contains a unique identifier, message content,
+ * and the timestamp when the message was created.
  */
-
 public class ClientMessage implements Serializable {
-	/**
-	 * Unique identifier of the message.
-	 */
-	private String id;
-	/**
-	 * Content of the client message.
-	 */
-	private SensorDataSet content;
 
-	/**
-	 * Timestamp when the message was created and sent.
-	 */
-	private long sentTimestamp;
+    /** Unique identifier of the message. */
+    private String id;
 
-	/**
-	 * Default constructor required for serialization/deserialization.
-	 */
-	public ClientMessage() {
-	}
+    /** Content of the client message. */
+    private SensorDataSet content;
 
-	/**
-	 * Creates a new client message. Generates a unique identifier and timestamp
-	 * automatically.
-	 *
-	 * @param content message content
-	 */
-	public ClientMessage(SensorDataSet content) {
+    /** Timestamp when the message was created and sent. */
+    private long sentTimestamp;
 
-		this.id = UUID.randomUUID().toString();
-		this.content = content;
-		this.sentTimestamp = Instant.now().toEpochMilli();
-	}
+    /**
+     * Default constructor required for serialization/deserialization.
+     */
+    public ClientMessage() {
+    }
 
-	/**
-	 * Returns the message identifier.
-	 *
-	 * @return message id
-	 */
-	public String getId() {
-		return id;
-	}
+    /**
+     * Creates a new client message.
+     * Generates a unique identifier and timestamp automatically.
+     *
+     * @param contentParam message content
+     */
+    public ClientMessage(final SensorDataSet contentParam) {
+        this.id = UUID.randomUUID().toString();
+        this.content = contentParam;
+        this.sentTimestamp = Instant.now().toEpochMilli();
+    }
 
-	/**
-	 * Sets the message identifier.
-	 *
-	 * @param id message id
-	 */
-	public void setId(String id) {
-		this.id = id;
-	}
+    /**
+     * Returns the message identifier.
+     *
+     * @return message id
+     */
+    public String getId() {
+        return id;
+    }
 
-	/**
-	 * Returns the message content.
-	 *
-	 * @return message content
-	 */
-	public SensorDataSet getContent() {
-		return content;
-	}
+    /**
+     * Sets the message identifier.
+     *
+     * @param idParam message id
+     */
+    public void setId(final String idParam) {
+        this.id = idParam;
+    }
 
-	public void setContent(SensorDataSet content) {
+    /**
+     * Returns the message content.
+     *
+     * @return message content
+     */
+    public SensorDataSet getContent() {
+        return content;
+    }
 
-		this.content = content;
-	}
+    /**
+     * Sets the message content.
+     *
+     * @param contentParam message content
+     */
+    public void setContent(final SensorDataSet contentParam) {
+        this.content = contentParam;
+    }
 
-	/**
-	 * Returns the timestamp when the message was sent.
-	 *
-	 * @return sent timestamp in milliseconds
-	 */
-	public long getSentTimestamp() {
-		return sentTimestamp;
-	}
+    /**
+     * Returns the timestamp when the message was sent.
+     *
+     * @return sent timestamp in milliseconds
+     */
+    public long getSentTimestamp() {
+        return sentTimestamp;
+    }
 
-	/**
-	 * Sets the sent timestamp.
-	 *
-	 * @param sentTimestamp timestamp in milliseconds
-	 */
-	public void setSentTimestamp(long sentTimestamp) {
-		this.sentTimestamp = sentTimestamp;
-	}
+    /**
+     * Sets the sent timestamp.
+     *
+     * @param sentTimestampParam timestamp in milliseconds
+     */
+    public void setSentTimestamp(final long sentTimestampParam) {
+        this.sentTimestamp = sentTimestampParam;
+    }
 
-	/**
-	 * Returns a string representation of the message.
-	 *
-	 * @return formatted message string
-	 */
-	@Override
-	public String toString() {
-		return String.format("[ClientMessage id=%s] %s (sent: %d)", id, content, sentTimestamp);
-	}
+    /**
+     * Returns a string representation of the message.
+     *
+     * @return formatted message string
+     */
+    @Override
+    public String toString() {
+        return String.format(
+                "[ClientMessage id=%s] %s (sent: %d)",
+                id, content, sentTimestamp);
+    }
 }

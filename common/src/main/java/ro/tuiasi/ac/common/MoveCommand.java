@@ -2,46 +2,82 @@ package ro.tuiasi.ac.common;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+/**
+ * Command to move the robot a specified distance in a given direction.
+ *
+ * @author Your Name
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MoveCommand implements Command {
-	private MoveDirection direction;
-	private float distanceCm;
+public final class MoveCommand implements Command {
 
-	// DEFAULT CONSTRUCTOR - REQUIRED for Jackson
-	public MoveCommand() {
-	}
+    /** Direction to move (FORWARD, BACKWARD, LEFT, RIGHT). */
+    private MoveDirection direction;
 
-	// Parameterized constructor for your code
-	public MoveCommand(MoveDirection dir, float dist) {
-		this.direction = dir;
-		this.distanceCm = dist;
-	}
+    /** Distance to move in centimeters. */
+    private float distanceCm;
 
-	@Override
-	public CommandType getType() {
-		return CommandType.MOVE;
-	}
+    /**
+     * Default constructor required for Jackson deserialization.
+     */
+    public MoveCommand() {
+    }
 
-	// GETTERS - REQUIRED for Jackson serialization
-	public MoveDirection getDirection() {
-		return this.direction;
-	}
+    /**
+     * Creates a new move command.
+     *
+     * @param dir Direction to move
+     * @param dist Distance in centimeters
+     */
+    public MoveCommand(final MoveDirection dir, final float dist) {
+        this.direction = dir;
+        this.distanceCm = dist;
+    }
 
-	// SETTERS - REQUIRED for Jackson deserialization
-	public void setDirection(MoveDirection direction) {
-		this.direction = direction;
-	}
+    @Override
+    public CommandType getType() {
+        return CommandType.MOVE;
+    }
 
-	public float getDistance() {
-		return this.distanceCm;
-	}
+    /**
+     * Gets the movement direction.
+     *
+     * @return The movement direction
+     */
+    public MoveDirection getDirection() {
+        return this.direction;
+    }
 
-	public void setDistance(float distanceCm) {
-		this.distanceCm = distanceCm;
-	}
+    /**
+     * Sets the movement direction.
+     *
+     * @param directionParam The movement direction to set
+     */
+    public void setDirection(final MoveDirection directionParam) {
+        this.direction = directionParam;
+    }
 
-	@Override
-	public String toString() {
-		return String.format("MoveCommand{direction=%s, distance=%.1fcm}", direction, distanceCm);
-	}
+    /**
+     * Gets the distance to move.
+     *
+     * @return Distance in centimeters
+     */
+    public float getDistance() {
+        return this.distanceCm;
+    }
+
+    /**
+     * Sets the distance to move.
+     *
+     * @param distanceCmParam Distance in centimeters to set
+     */
+    public void setDistance(final float distanceCmParam) {
+        this.distanceCm = distanceCmParam;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "MoveCommand{direction=%s, distance=%.1fcm}",
+                direction, distanceCm);
+    }
 }
