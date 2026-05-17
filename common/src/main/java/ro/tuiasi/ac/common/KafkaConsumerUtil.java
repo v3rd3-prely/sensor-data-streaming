@@ -5,9 +5,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -38,6 +39,10 @@ public class KafkaConsumerUtil {
 	 * Controls the polling loop execution.
 	 */
 	private volatile boolean running = true;
+	/**
+	 * Logger
+	 */
+	private static final Logger log = LoggerFactory.getLogger(KafkaConsumerUtil.class);
 
 	/**
 	 * Default constructor.
@@ -76,7 +81,7 @@ public class KafkaConsumerUtil {
 				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 				.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false).build();
 
-		System.out.printf("✅ Subscribed to topic: %s (group: %s)%n", topic, groupId);
+		log.info("✅ Subscribed to topic: %s (group: %s)%n", topic, groupId);
 	}
 
 	/**
@@ -95,16 +100,19 @@ public class KafkaConsumerUtil {
 					for (ConsumerRecord<String, String> record : records) {
 						try {
 							Object message = objectMapper.readValue(record.value(), messageClass);
-							System.out.printf("📨 Received from %s [p%d, o%d]%n", record.topic(), record.partition(),
-									record.offset());
+							if (log.isInfoEnabled())
+								log.info("📨 Received from %s [p%d, o%d]%n", record.topic(), record.partition(),
+										record.offset());
 							handler.accept(message);
 						} catch (Exception e) {
-							System.err.println("❌ Deserialization error: " + e.getMessage());
+							if (log.isErrorEnabled())
+								log.error("❌ Deserialization error: " + e.getMessage());
 						}
 					}
 				} catch (Exception e) {
 					if (running) {
-						System.err.println("❌ Polling error: " + e.getMessage());
+						if (log.isErrorEnabled())
+							log.error("❌ Polling error: " + e.getMessage());
 					}
 				}
 			}

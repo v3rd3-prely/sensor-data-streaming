@@ -59,11 +59,11 @@ public class CameraSensor implements Sensor<CameraFrame> {
 	/**
 	 * Width of the generated camera frame in pixels. Constant value: 400 pixels.
 	 */
-	private static final int WIDTH = 400;
+	public static final int WIDTH = 400;
 	/**
 	 * Height of the generated camera frame in pixels. Constant value: 400 pixels.
 	 */
-	private static final int HEIGHT = 400;
+	public static final int HEIGHT = 400;
 	/**
 	 * Size of the square target marker in pixels. Constant value: 20x20 pixels.
 	 */

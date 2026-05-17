@@ -4,6 +4,9 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.errors.TopicExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -14,6 +17,11 @@ import java.util.concurrent.ExecutionException;
  * exist before the application starts communication.
  */
 public class KafkaTopicUtil {
+
+	/**
+	 * Logger
+	 */
+	private static final Logger log = LoggerFactory.getLogger(KafkaTopicUtil.class);
 
 	/**
 	 * Default constructor.
@@ -35,16 +43,19 @@ public class KafkaTopicUtil {
 			List<NewTopic> newTopics = Arrays.stream(topics).map(topic -> new NewTopic(topic, 1, (short) 1)).toList();
 
 			admin.createTopics(newTopics).all().get();
-			System.out.printf("✅ Created topics: %s%n", Arrays.toString(topics));
+			if (log.isInfoEnabled())
+				log.info("✅ Created topics: %s%n", Arrays.toString(topics));
 		} catch (ExecutionException e) {
 			if (e.getCause() instanceof TopicExistsException) {
-				System.out.printf("ℹ️ Topics already exist: %s%n", Arrays.toString(topics));
+				if (log.isInfoEnabled())
+					log.info("ℹ️ Topics already exist: %s%n", Arrays.toString(topics));
 			} else {
-				System.err.println("❌ Failed to create topics: " + e.getMessage());
+				if (log.isErrorEnabled())
+					log.error("❌ Failed to create topics: " + e.getMessage());
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			System.err.println("❌ Topic creation interrupted");
+			log.error("❌ Topic creation interrupted");
 		}
 	}
 }

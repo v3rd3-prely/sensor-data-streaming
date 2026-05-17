@@ -1,5 +1,8 @@
 package ro.tuiasi.ac.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ro.tuiasi.ac.common.*;
 
 /**
@@ -21,6 +24,11 @@ public class ProcessingSensor {
 	 * than 200, green less than 50, blue less than 50)
 	 */
 	private static final int redThresh = 200;
+
+	/**
+	 * Logger
+	 */
+	private static final Logger log = LoggerFactory.getLogger(ProcessingSensor.class);
 
 	/**
 	 * Private constructor to prevent instantiation. This is a utility class with
@@ -53,18 +61,18 @@ public class ProcessingSensor {
 		boolean obstacleRight = false;
 
 		// Check left LiDAR for obstacles
-		for (int i = 0; i < leftLidarVals.length; i++) {
-			for (int j = 0; j < leftLidarVals[i].length; j++) {
-				if (leftLidarVals[i][j] < lidarThresh) {
+		for (double[] ds : leftLidarVals) {
+			for (double val : ds) {
+				if (val < lidarThresh) {
 					obstacleLeft = true;
 				}
 			}
 		}
 
 		// Check right LiDAR for obstacles
-		for (int i = 0; i < rightLidarVals.length; i++) {
-			for (int j = 0; j < rightLidarVals[i].length; j++) {
-				if (rightLidarVals[i][j] < lidarThresh) {
+		for (double[] ds : rightLidarVals) {
+			for (double val : ds) {
+				if (val < lidarThresh) {
 					obstacleRight = true;
 				}
 			}
@@ -72,12 +80,12 @@ public class ProcessingSensor {
 
 		// Obstacle avoidance logic
 		if (obstacleLeft) {
-			System.out.println("Obstacle on the left side detected.");
+			log.info("Obstacle on the left side detected.");
 			return new MoveCommand(MoveDirection.RIGHT, 10);
 		}
 
 		if (obstacleRight) {
-			System.out.println("Obstacle on the right side detected.");
+			log.info("Obstacle on the right side detected.");
 			return new MoveCommand(MoveDirection.LEFT, 10);
 		}
 
@@ -95,16 +103,16 @@ public class ProcessingSensor {
 					int targetX = i;
 					int targetY = j;
 					if (targetX + 10 < width / 2) {
-						System.out.println("Rotation left towards the target.");
+						log.info("Rotation left towards the target.");
 						return new RotateCommand(RotateDirection.LEFT, 10);
 					} else if (targetX - 10 > width / 2) {
-						System.out.println("Rotation right towards the target.");
+						log.info("Rotation right towards the target.");
 						return new RotateCommand(RotateDirection.RIGHT, 10);
 					} else if (targetY - 10 < height) {
-						System.out.println("Moving towards the target.");
+						log.info("Moving towards the target.");
 						return new MoveCommand(MoveDirection.FRONT, 10);
 					} else {
-						System.out.println("Target reached.");
+						log.info("Target reached.");
 						return new StopCommand();
 					}
 				}

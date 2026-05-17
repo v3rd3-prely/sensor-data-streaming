@@ -4,9 +4,10 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -28,6 +29,11 @@ public class KafkaProducerUtil {
 	 * JSON object mapper used for message serialization.
 	 */
 	private final JsonMapper objectMapper;
+
+	/**
+	 * Logger
+	 */
+	private static final Logger log = LoggerFactory.getLogger(KafkaProducerUtil.class);
 
 	/**
 	 * Default constructor.
@@ -86,13 +92,16 @@ public class KafkaProducerUtil {
 
 			producer.send(record, (metadata, exception) -> {
 				if (exception == null) {
-					System.out.printf("✅ Sent to %s [p%d, o%d]%n", topic, metadata.partition(), metadata.offset());
+					if (log.isInfoEnabled())
+						log.info("✅ Sent to %s [p%d, o%d]%n", topic, metadata.partition(), metadata.offset());
 				} else {
-					System.err.printf("❌ Failed to send to %s: %s%n", topic, exception.getMessage());
+					if (log.isInfoEnabled())
+						log.info("❌ Failed to send to %s: %s%n", topic, exception.getMessage());
 				}
 			});
 		} catch (Exception e) {
-			System.err.println("❌ Serialization error: " + e.getMessage());
+			if (log.isErrorEnabled())
+				log.error("❌ Serialization error: " + e.getMessage());
 		}
 	}
 

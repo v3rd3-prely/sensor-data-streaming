@@ -2,8 +2,10 @@ package ro.tuiasi.ac.server;
 
 import ro.tuiasi.ac.common.*;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Main entry point for the server application. Initializes Kafka communication,
@@ -28,7 +30,12 @@ public class ServerMain {
 	/**
 	 * Total accumulated processing time for all messages.
 	 */
-	private static long totalProcessingTime = 0;
+	private static long totalProcessingTime;
+
+	/**
+	 * Logger
+	 */
+	private static final Logger log = LoggerFactory.getLogger(ServerMain.class);
 
 	/**
 	 * Default constructor.
@@ -43,7 +50,7 @@ public class ServerMain {
 	 * @param args command-line arguments
 	 */
 	public static void main(String[] args) {
-		System.out.println("🚀 Starting Server...");
+		log.info("🚀 Starting Server...");
 		String bootstrapServers = Config.getKafkaBootstrapServers();
 
 		// Create topics if they don't exist
@@ -58,12 +65,14 @@ public class ServerMain {
 		consumer.listen(ClientMessage.class, message -> {
 			ClientMessage clientMsg = (ClientMessage) message;
 			long receiveTime = Instant.now().toEpochMilli();
-			System.out.println("📥 Server received: " + clientMsg);
-			System.out.println("   ⏱️  Received at: " + receiveTime);
+			if (log.isInfoEnabled()) {
+				log.info("📥 Server received: " + clientMsg);
+				log.info("   ⏱️  Received at: " + receiveTime);
+			}
 			processClientMessage(clientMsg, receiveTime);
 		});
-
-		System.out.println("✅ Server ready and listening");
+		if (log.isInfoEnabled())
+			log.info("✅ Server ready and listening");
 
 		// Send a test message to client after 5 seconds
 		try {
@@ -88,7 +97,8 @@ public class ServerMain {
 		ServerMessage message = new ServerMessage(content);
 		message.setServerSentTimestamp(Instant.now().toEpochMilli());
 		producer.sendMessage(Config.SERVER_TO_CLIENT_TOPIC, message);
-		System.out.println("📤 Server sent: " + message);
+		if (log.isInfoEnabled())
+			log.info("📤 Server sent: " + message);
 	}
 
 	/**
@@ -101,7 +111,8 @@ public class ServerMain {
 	 */
 	private static void processClientMessage(ClientMessage message, long receiveTime) {
 		long startProcessing = System.currentTimeMillis();
-		System.out.println("⚙️ Processing: " + message.getContent());
+		if (log.isInfoEnabled())
+			log.info("⚙️ Processing: " + message.getContent());
 
 		Command content = ProcessingSensor.processSensorDataSet(message.getContent());
 		// Simulate some processing work (you can adjust or remove this)
@@ -123,13 +134,15 @@ public class ServerMain {
 		int processed = messagesProcessed.incrementAndGet();
 		totalProcessingTime += processingTime;
 		double avgProcessingTime = totalProcessingTime / (double) processed;
-
-		System.out.printf("   ⚙️  Processing took: %d ms (avg: %.2f ms)%n", processingTime, avgProcessingTime);
+		if (log.isInfoEnabled())
+			log.info("   ⚙️  Processing took: %d ms (avg: %.2f ms)%n", processingTime, avgProcessingTime);
 
 		// Send response back to client
 		producer.sendMessage(Config.SERVER_TO_CLIENT_TOPIC, response);
-		System.out.println("📤 Server sent response: " + response);
-		System.out.println("   ⏱️  Sent at: " + response.getServerSentTimestamp());
+		if (log.isInfoEnabled()) {
+			log.info("📤 Server sent response: " + response);
+			log.info("   ⏱️  Sent at: " + response.getServerSentTimestamp());
+		}
 	}
 
 	/**
