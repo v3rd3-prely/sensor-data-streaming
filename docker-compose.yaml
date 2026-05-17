@@ -20,23 +20,26 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # CRITICAL FIX: Advertise the correct hostname for Docker networking
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      # Also add internal listener for Docker communications
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_MESSAGE_MAX_BYTES: 5242880     # 5 MB
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 5242880  # 5 MB
+      KAFKA_CONSUMER_FETCH_MAX_BYTES: 5242880  # 5 MB
     depends_on:
       - zookeeper
     networks:
       - app-network
+
   server:
     build: ./server
     container_name: server-container
     ports:
       - "8080:8080"
+      
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:

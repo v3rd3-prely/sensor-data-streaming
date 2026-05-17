@@ -1,11 +1,20 @@
 package ro.tuiasi.ac.common;
 
-public class StopCommand implements Command {
-	@Override
-	public CommandType getType() {
-		// TODO Auto-generated method stub
-		return CommandType.STOP;
-	}
-	
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class StopCommand implements Command {
+    
+    // DEFAULT CONSTRUCTOR
+    public StopCommand() {}
+    
+    @Override
+    public CommandType getType() {
+        return CommandType.STOP;
+    }
+    
+    @Override
+    public String toString() {
+        return "StopCommand{}";
+    }
 }

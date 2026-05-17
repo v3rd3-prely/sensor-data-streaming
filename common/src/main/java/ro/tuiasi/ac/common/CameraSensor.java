@@ -45,6 +45,13 @@ public class CameraSensor implements Sensor<CameraFrame> {
 
         return new CameraFrame(WIDTH, HEIGHT, red, green, blue);
     }
+    
+    public int getTargetX() {
+    	return this.targetX;
+    }
+    public int getTargetY() {
+    	return this.targetY;
+    }
 
     public void setTargetPosition(int targetX, int targetY) {
         this.targetX = targetX;
