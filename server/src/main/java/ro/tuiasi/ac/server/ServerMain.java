@@ -29,6 +29,9 @@ public class ServerMain {
 	 * Total accumulated processing time for all messages.
 	 */
 	private static long totalProcessingTime = 0;
+	
+	
+	private static ImageViewer viewer;
 
 	/**
 	 * Default constructor.
@@ -44,6 +47,13 @@ public class ServerMain {
 	 */
 	public static void main(String[] args) {
 		System.out.println("🚀 Starting Server...");
+		
+		try {
+		    viewer = new ImageViewer();
+		} catch (Exception e) {
+		    e.printStackTrace();
+		}
+		
 		String bootstrapServers = Config.getKafkaBootstrapServers();
 
 		// Create topics if they don't exist
@@ -102,6 +112,8 @@ public class ServerMain {
 	private static void processClientMessage(ClientMessage message, long receiveTime) {
 		long startProcessing = System.currentTimeMillis();
 		System.out.println("⚙️ Processing: " + message.getContent());
+		
+		viewer.updateFrame(message.getContent().cameraFrame());
 
 		Command content = ProcessingSensor.processSensorDataSet(message.getContent());
 		// Simulate some processing work (you can adjust or remove this)
