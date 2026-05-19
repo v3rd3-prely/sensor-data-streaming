@@ -89,6 +89,7 @@ public class ClientMain {
 
 		System.out.println("🚀 Starting Client...");
 		String bootstrapServers = Config.getKafkaBootstrapServers();
+		
 
 		// Create topics if they don't exist
 		KafkaTopicUtil.createTopicsIfNotExist(bootstrapServers, Config.CLIENT_TO_SERVER_TOPIC,
@@ -143,7 +144,7 @@ public class ClientMain {
 				System.out.println("📤 Client sent: " + message);
 				System.out.println("   ⏱️  Sent at: " + sendTime);
 			}
-		}, 0, 100, TimeUnit.MILLISECONDS);
+		}, 0, 300, TimeUnit.MILLISECONDS);
 	}
 
 	/**

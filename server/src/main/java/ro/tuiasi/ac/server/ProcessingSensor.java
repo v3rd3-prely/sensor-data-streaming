@@ -72,7 +72,7 @@ public class ProcessingSensor {
     					}else if(targetX - 10 > width/2) {
     						System.out.println("Rotation right towards the target.");
     						return new RotateCommand(RotateDirection.RIGHT, 10);
-    					}else if(targetY - 10 < height) {
+    					}else if(targetY - 25 < height) {
     						System.out.println("Moving towards the target.");
     						return new MoveCommand(MoveDirection.FRONT, 10);
     					}else {

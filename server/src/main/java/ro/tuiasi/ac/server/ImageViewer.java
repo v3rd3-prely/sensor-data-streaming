@@ -20,7 +20,8 @@ public class ImageViewer {
 	public ImageViewer() throws IOException {
 		HttpServer server = HttpServer.create(new InetSocketAddress(8082), 0);
 
-		server.createContext("/", new ImageHandler());
+		server.createContext("/", new PageHandler());
+		server.createContext("/frame", new ImageHandler());
 
 		server.setExecutor(null);
 		server.start();
@@ -87,7 +88,57 @@ public class ImageViewer {
 			os.close();
 		}
 	}
+	
+	private class PageHandler implements HttpHandler {
+
+	    @Override
+	    public void handle(HttpExchange exchange) throws IOException {
+
+	        String html = """
+	            <html>
+	            <head>
+	                <title>Robot Camera</title>
+	                <style>
+	                    body {
+	                        background: black;
+	                        display: flex;
+	                        justify-content: center;
+	                        align-items: center;
+	                        height: 100vh;
+	                        margin: 0;
+	                    }
+
+	                    img {
+	                        border: 2px solid white;
+	                    }
+	                </style>
+	            </head>
+
+	            <body>
+	                <img id="camera" width="400" height="400">
+
+	                <script>
+	                    setInterval(() => {
+	                        document.getElementById("camera").src =
+	                            "/frame?t=" + new Date().getTime();
+	                    }, 100);
+	                </script>
+	            </body>
+	            </html>
+	            """;
+
+	        exchange.getResponseHeaders().set("Content-Type", "text/html");
+
+	        exchange.sendResponseHeaders(200, html.getBytes().length);
+
+	        OutputStream os = exchange.getResponseBody();
+	        os.write(html.getBytes());
+	        os.close();
+	    }
+	}
 }
+
+
 
 
 

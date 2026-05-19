@@ -56,11 +56,11 @@ public class Robot {
 			if(newTargetY < 0) {
 				newTargetY = 0;
 			}
-			if(newTargetX > 400) {
-				newTargetX = 400;
+			if(newTargetX > 380) {
+				newTargetX = 380;
 			}
-			if(newTargetY < 400) {
-				newTargetY = 400;
+			if(newTargetY > 380) {
+				newTargetY = 380;
 			}
 			
 			sensorSet.cameraSensor.setTargetPosition(newTargetX, newTargetY);
