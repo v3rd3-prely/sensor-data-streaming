@@ -4,9 +4,10 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -15,92 +16,135 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import java.util.Properties;
 
 /**
- * Utility class for sending messages to Kafka topics. Serializes Java objects
- * into JSON format and publishes them through a Kafka producer.
+ * Utility class for sending messages to Kafka topics.
+ * Serializes Java objects into JSON format and publishes them
+ * through a Kafka producer.
  */
 public class KafkaProducerUtil {
 
-	/**
-	 * Kafka producer used for publishing messages.
-	 */
-	private final KafkaProducer<String, String> producer;
-	/**
-	 * JSON object mapper used for message serialization.
-	 */
-	private final JsonMapper objectMapper;
+    /** Number of retries for failed sends. */
+    private static final int RETRIES_COUNT = 3;
 
-	/**
-	 * Default constructor.
-	 */
-	public KafkaProducerUtil() {
-		this.producer = null;
-		this.objectMapper = null;
-	}
+    /** Maximum request size in bytes (5 MB). */
+    private static final int MAX_REQUEST_SIZE_BYTES = 5 * 1024 * 1024;
 
-	/**
-	 * Creates a Kafka producer utility.
-	 *
-	 * @param bootstrapServers Kafka bootstrap servers address
-	 */
-	public KafkaProducerUtil(String bootstrapServers) {
-		Properties props = new Properties();
-		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-		props.put(ProducerConfig.ACKS_CONFIG, "all");
-		props.put(ProducerConfig.RETRIES_CONFIG, 3);
+    /** Buffer memory size in bytes (32 MB). */
+    private static final int BUFFER_MEMORY_BYTES = 32 * 1024 * 1024;
 
-		props.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 5 * 1024 * 1024); // 5 MB
-		props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 32 * 1024 * 1024); // 32 MB
+    /** One kilobyte in bytes. */
+    private static final int KB = 1024;
 
-		// Enable compression (reduces size by 70-90%)
-		props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4"); // or "snappy", "gzip", "zstd"
+    /** One megabyte in bytes (KB * KB). */
+    private static final int MB = KB * KB;
 
-		this.producer = new KafkaProducer<>(props);
+    /** Maximum request size (5 MB). */
+    private static final int MAX_REQUEST_SIZE = 5 * MB;
 
-		// MODERN BUILDER PATTERN - No deprecated methods!
-		PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-				.allowIfSubType("ro.tuiasi.ac.common").allowIfBaseType(Command.class).build();
+    /** Buffer memory size (32 MB). */
+    private static final int BUFFER_MEMORY = 32 * MB;
 
-		this.objectMapper = JsonMapper.builder()
-				// Configure typing for polymorphism
-				.activateDefaultTyping(typeValidator, JsonMapper.DefaultTyping.NON_FINAL,
-						com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY)
-				// Configure features using builder pattern
-				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-				.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-				// Optional: Pretty print for debugging (remove in production)
-				.configure(SerializationFeature.INDENT_OUTPUT, false).build();
-	}
+    /** Kafka producer used for publishing messages. */
+    private final KafkaProducer<String, String> producer;
 
-	/**
-	 * Serializes and sends a message to a Kafka topic.
-	 *
-	 * @param topic   Kafka topic name
-	 * @param message Java object to serialize and send
-	 */
-	public void sendMessage(String topic, Object message) {
-		try {
-			String json = objectMapper.writeValueAsString(message);
-			ProducerRecord<String, String> record = new ProducerRecord<>(topic, json);
+    /** JSON object mapper used for message serialization. */
+    private final JsonMapper objectMapper;
 
-			producer.send(record, (metadata, exception) -> {
-				if (exception == null) {
-					System.out.printf("✅ Sent to %s [p%d, o%d]%n", topic, metadata.partition(), metadata.offset());
-				} else {
-					System.err.printf("❌ Failed to send to %s: %s%n", topic, exception.getMessage());
-				}
-			});
-		} catch (Exception e) {
-			System.err.println("❌ Serialization error: " + e.getMessage());
-		}
-	}
+    /** Logger for this class. */
+    private static final Logger LOG = LoggerFactory.getLogger(
+            KafkaProducerUtil.class);
 
-	/**
-	 * Flushes pending messages and closes the Kafka producer.
-	 */
-	public void close() {
-		producer.flush();
-		producer.close();
-	}
+    /**
+     * Default constructor (not recommended - creates unusable instance).
+     *
+     * @deprecated Use {@link #KafkaProducerUtil(String)} instead
+     */
+    @Deprecated
+    public KafkaProducerUtil() {
+        this.producer = null;
+        this.objectMapper = null;
+    }
+
+    /**
+     * Creates a Kafka producer utility.
+     *
+     * @param bootstrapServers Kafka bootstrap servers address
+     */
+    public KafkaProducerUtil(final String bootstrapServers) {
+        Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                StringSerializer.class.getName());
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.RETRIES_CONFIG, RETRIES_COUNT);
+
+        props.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, MAX_REQUEST_SIZE);
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, BUFFER_MEMORY);
+
+        // Enable compression (reduces size by 70-90%)
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
+
+        this.producer = new KafkaProducer<>(props);
+
+        // Configure polymorphic type validation
+        PolymorphicTypeValidator typeValidator =
+                BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("ro.tuiasi.ac.common")
+                .allowIfBaseType(Command.class)
+                .build();
+
+        this.objectMapper = JsonMapper.builder()
+                .activateDefaultTyping(typeValidator,
+                        JsonMapper.DefaultTyping.NON_FINAL,
+                        com.fasterxml.jackson.
+                        annotation.JsonTypeInfo.As.PROPERTY)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                        false)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .configure(SerializationFeature.INDENT_OUTPUT, false)
+                .build();
+    }
+
+    /**
+     * Serializes and sends a message to a Kafka topic.
+     *
+     * @param topic Kafka topic name
+     * @param message Java object to serialize and send
+     */
+    public void sendMessage(final String topic, final Object message) {
+        try {
+            String json = objectMapper.writeValueAsString(message);
+            ProducerRecord<String, String> record =
+                    new ProducerRecord<>(topic, json);
+
+            producer.send(record, (metadata, exception) -> {
+                if (exception == null) {
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info("✅ Sent to {} [p{}, o{}]",
+                                topic, metadata.partition(),
+                                metadata.offset());
+                    }
+                } else {
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info("❌ Failed to send to {}: {}",
+                                topic, exception.getMessage());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("❌ Serialization error: {}", e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Flushes pending messages and closes the Kafka producer.
+     */
+    public void close() {
+        producer.flush();
+        producer.close();
+    }
 }

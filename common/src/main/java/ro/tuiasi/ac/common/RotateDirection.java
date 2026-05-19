@@ -1,6 +1,15 @@
 package ro.tuiasi.ac.common;
 
+/**
+ * Enumeration of possible rotation directions for the robot.
+ *
+ * @author Your Name
+ */
 public enum RotateDirection {
-	RIGHT,
-	LEFT
+
+    /** Rotate clockwise. */
+    RIGHT,
+
+    /** Rotate counter-clockwise. */
+    LEFT
 }
