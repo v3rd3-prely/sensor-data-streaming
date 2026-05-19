@@ -27,8 +27,10 @@ public final class ServerMain {
     /** Delay before sending test message in milliseconds. */
     private static final int TEST_MESSAGE_DELAY_MS = 5000;
 
-	private static ImageViewer viewer;
-	
+    /** Handles the viewing of the received CameraFrame
+     * data from SensorDataSet. */
+    private static ImageViewer viewer;
+
     /** Kafka producer used for sending messages to clients. */
     private static KafkaProducerUtil producer;
 
@@ -63,10 +65,10 @@ public final class ServerMain {
     public static void main(final String[] args) {
         LOG.info("🚀 Starting Server...");
         try {
-		    viewer = new ImageViewer();
-		} catch (Exception e) {
-		    e.printStackTrace();
-		}
+            viewer = new ImageViewer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         String bootstrapServers = Config.getKafkaBootstrapServers();
 
         // Create topics if they don't exist
@@ -92,7 +94,6 @@ public final class ServerMain {
             }
             processClientMessage(clientMsg, receiveTime);
         });
-
 
         // Send a test message to client after delay
         try {
@@ -136,7 +137,7 @@ public final class ServerMain {
         if (LOG.isInfoEnabled()) {
             LOG.info("⚙️ Processing: " + message.getContent());
         }
-        
+
         viewer.updateFrame(message.getContent().cameraFrame());
 
         Command content = ProcessingSensor.processSensorDataSet(

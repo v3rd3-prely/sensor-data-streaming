@@ -13,132 +13,196 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
+/**
+ * HTTP server that displays live camera frames from the robot.
+ * Serves an HTML page with auto-refreshing image stream and handles
+ * frame requests by converting CameraFrame objects to PNG images.
+ *
+ * <p>The server runs on port 8082 and provides two endpoints:
+ * <ul>
+ *   <li>/ - Serves an HTML page with JavaScript that refreshes the image
+ *       every 100ms</li>
+ *   <li>/frame - Returns the current camera frame as a PNG image</li>
+ * </ul>
+ *
+ * @author Your Name
+ */
 public class ImageViewer {
 
-	private volatile BufferedImage latestImage;
+    /** HTTP server port number. */
+    private static final int SERVER_PORT = 8082;
 
-	public ImageViewer() throws IOException {
-		HttpServer server = HttpServer.create(new InetSocketAddress(8082), 0);
+    /** HTTP success status code. */
+    private static final int HTTP_OK = 200;
 
-		server.createContext("/", new PageHandler());
-		server.createContext("/frame", new ImageHandler());
+    /** Bit shift for red channel (16 bits). */
+    private static final int RED_SHIFT = 16;
 
-		server.setExecutor(null);
-		server.start();
+    /** Bit shift for green channel (8 bits). */
+    private static final int GREEN_SHIFT = 8;
 
-		System.out.println("ImageViewer started on http://localhost:8082");
-	}
+    /** The most recently received camera frame, converted to BufferedImage. */
+    private volatile BufferedImage latestImage;
 
-	public void updateFrame(CameraFrame frame) {
-		latestImage = convertToImage(frame);
-	}
+    /**
+     * Creates and starts the HTTP server on port 8082.
+     * Registers the page handler for "/" and the image handler for "/frame".
+     *
+     * @throws IOException if the server cannot be created or started
+     */
+    public ImageViewer() throws IOException {
+        HttpServer server = HttpServer.create(
+                new InetSocketAddress(SERVER_PORT), 0);
 
-	private BufferedImage convertToImage(CameraFrame frame) {
+        server.createContext("/", new PageHandler());
+        server.createContext("/frame", new ImageHandler());
 
-		BufferedImage image = new BufferedImage(frame.width(), frame.height(), BufferedImage.TYPE_INT_RGB);
+        server.setExecutor(null);
+        server.start();
 
-		int[][] red = frame.red();
-		int[][] green = frame.green();
-		int[][] blue = frame.blue();
+        System.out.println("ImageViewer started on http://localhost:8082");
+    }
 
-		for (int y = 0; y < frame.height(); y++) {
-			for (int x = 0; x < frame.width(); x++) {
+    /**
+     * Updates the displayed frame with new camera data.
+     * Converts the CameraFrame to a BufferedImage and stores it for future
+     * HTTP requests.
+     *
+     * @param frame the new camera frame to display
+     */
+    public void updateFrame(final CameraFrame frame) {
+        latestImage = convertToImage(frame);
+    }
 
-				int r = red[y][x];
-				int g = green[y][x];
-				int b = blue[y][x];
+    /**
+     * Converts a CameraFrame object to a BufferedImage.
+     * Maps RGB channel values from the frame's color matrices to pixel colors.
+     *
+     * @param frame the camera frame to convert
+     * @return BufferedImage containing the converted image data
+     */
+    private BufferedImage convertToImage(final CameraFrame frame) {
+        BufferedImage image = new BufferedImage(
+                frame.width(), frame.height(), BufferedImage.TYPE_INT_RGB);
 
-				int rgb = (r << 16) | (g << 8) | b;
+        int[][] red = frame.red();
+        int[][] green = frame.green();
+        int[][] blue = frame.blue();
 
-				image.setRGB(x, y, rgb);
-			}
-		}
+        for (int y = 0; y < frame.height(); y++) {
+            for (int x = 0; x < frame.width(); x++) {
+                int r = red[y][x];
+                int g = green[y][x];
+                int b = blue[y][x];
 
-		return image;
-	}
+                int rgb = (r << RED_SHIFT) | (g << GREEN_SHIFT) | b;
 
-	private class ImageHandler implements HttpHandler {
+                image.setRGB(x, y, rgb);
+            }
+        }
 
-		@Override
-		public void handle(HttpExchange exchange) throws IOException {
+        return image;
+    }
 
-			if (latestImage == null) {
-				String response = "No image available yet";
+    /**
+     * HTTP handler for serving camera frame images.
+     * Responds with the latest camera frame as a PNG image,
+     * or a text message if no image is available.
+     */
+    private final class ImageHandler implements HttpHandler {
 
-				exchange.sendResponseHeaders(200, response.length());
+        /**
+         * Handles HTTP GET requests to the /frame endpoint.
+         * Returns the latest camera frame as a PNG image with
+         * Content-Type image/png. If no frame has been received yet,
+         * returns a text message.
+         *
+         * @param exchange the HTTP exchange containing the request and response
+         * @throws IOException if an I/O error occurs while handling the request
+         */
+        @Override
+        public void handle(final HttpExchange exchange) throws IOException {
+            if (latestImage == null) {
+                String response = "No image available yet";
 
-				OutputStream os = exchange.getResponseBody();
-				os.write(response.getBytes());
-				os.close();
+                exchange.sendResponseHeaders(HTTP_OK, response.length());
 
-				return;
-			}
+                OutputStream os = exchange.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+                return;
+            }
 
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-			ImageIO.write(latestImage, "png", outputStream);
+            ImageIO.write(latestImage, "png", outputStream);
 
-			byte[] imageBytes = outputStream.toByteArray();
+            byte[] imageBytes = outputStream.toByteArray();
 
-			exchange.getResponseHeaders().set("Content-Type", "image/png");
-			exchange.sendResponseHeaders(200, imageBytes.length);
+            exchange.getResponseHeaders().set("Content-Type", "image/png");
+            exchange.sendResponseHeaders(HTTP_OK, imageBytes.length);
 
-			OutputStream os = exchange.getResponseBody();
-			os.write(imageBytes);
-			os.close();
-		}
-	}
-	
-	private class PageHandler implements HttpHandler {
+            OutputStream os = exchange.getResponseBody();
+            os.write(imageBytes);
+            os.close();
+        }
+    }
 
-	    @Override
-	    public void handle(HttpExchange exchange) throws IOException {
+    /**
+     * HTTP handler for serving the HTML page.
+     * Returns an HTML document that displays the camera feed with auto-refresh.
+     */
+    private final class PageHandler implements HttpHandler {
 
-	        String html = """
-	            <html>
-	            <head>
-	                <title>Robot Camera</title>
-	                <style>
-	                    body {
-	                        background: black;
-	                        display: flex;
-	                        justify-content: center;
-	                        align-items: center;
-	                        height: 100vh;
-	                        margin: 0;
-	                    }
+        /**
+         * Handles HTTP GET requests to the root endpoint.
+         * Returns an HTML page with JavaScript that refreshes the camera image
+         * every 100 milliseconds by appending a timestamp to prevent caching.
+         *
+         * @param exchange the HTTP exchange containing the request and response
+         * @throws IOException if an I/O error occurs while handling the request
+         */
+        @Override
+        public void handle(final HttpExchange exchange) throws IOException {
+            String html = """
+                <html>
+                <head>
+                    <title>Robot Camera</title>
+                    <style>
+                        body {
+                            background: black;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            margin: 0;
+                        }
 
-	                    img {
-	                        border: 2px solid white;
-	                    }
-	                </style>
-	            </head>
+                        img {
+                            border: 2px solid white;
+                        }
+                    </style>
+                </head>
 
-	            <body>
-	                <img id="camera" width="400" height="400">
+                <body>
+                    <img id="camera" width="400" height="400">
 
-	                <script>
-	                    setInterval(() => {
-	                        document.getElementById("camera").src =
-	                            "/frame?t=" + new Date().getTime();
-	                    }, 100);
-	                </script>
-	            </body>
-	            </html>
-	            """;
+                    <script>
+                        setInterval(() => {
+                            document.getElementById("camera").src =
+                                "/frame?t=" + new Date().getTime();
+                        }, 100);
+                    </script>
+                </body>
+                </html>
+                """;
 
-	        exchange.getResponseHeaders().set("Content-Type", "text/html");
+            exchange.getResponseHeaders().set("Content-Type", "text/html");
+            exchange.sendResponseHeaders(HTTP_OK, html.getBytes().length);
 
-	        exchange.sendResponseHeaders(200, html.getBytes().length);
-
-	        OutputStream os = exchange.getResponseBody();
-	        os.write(html.getBytes());
-	        os.close();
-	    }
-	}
+            OutputStream os = exchange.getResponseBody();
+            os.write(html.getBytes());
+            os.close();
+        }
+    }
 }
-
-
-
-
-
