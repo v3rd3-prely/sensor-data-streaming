@@ -113,7 +113,7 @@ public class Robot {
             if (newTargetX > CameraSensor.WIDTH) {
                 newTargetX = CameraSensor.WIDTH;
             }
-            if (newTargetY < CameraSensor.HEIGHT) {
+            if (newTargetY > CameraSensor.HEIGHT) {
                 newTargetY = CameraSensor.HEIGHT;
             }
 

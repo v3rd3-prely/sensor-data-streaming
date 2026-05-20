@@ -31,6 +31,9 @@ public final class ProcessingSensor {
     /** Movement distance for avoidance commands in cm. */
     private static final int AVOID_DISTANCE_CM = 10;
 
+    /** Expected target size. */
+    private static final int TARGET_SIZE = 20;
+
     /** Logger for this class. */
     private static final Logger LOG = LoggerFactory.getLogger(
             ProcessingSensor.class);
@@ -119,7 +122,8 @@ public final class ProcessingSensor {
                         LOG.info("Rotation right towards the target.");
                         return new RotateCommand(
                                 RotateDirection.RIGHT, AVOID_DISTANCE_CM);
-                    } else if (targetY - AVOID_DISTANCE_CM < height) {
+                    } else if (targetY + AVOID_DISTANCE_CM
+                            <= height - TARGET_SIZE) {
                         LOG.info("Moving towards the target.");
                         return new MoveCommand(
                                 MoveDirection.FRONT, AVOID_DISTANCE_CM);

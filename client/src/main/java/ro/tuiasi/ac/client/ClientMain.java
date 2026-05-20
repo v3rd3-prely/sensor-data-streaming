@@ -73,6 +73,7 @@ public final class ClientMain {
     /** Robot object that collects sensor data sets and executes commands. */
     private static Robot robot;
 
+
     /**
      * Private constructor to prevent instantiation.
      * This is a utility class with only static methods.
@@ -139,6 +140,7 @@ public final class ClientMain {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+
 
         // Keep client running
         keepAlive();
